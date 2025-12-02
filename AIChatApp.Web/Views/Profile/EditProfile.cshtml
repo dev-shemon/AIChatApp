@@ -1,0 +1,63 @@
+﻿@model AIChatApp.Application.DTOs.EditProfileDto
+
+@{
+    ViewData["Title"] = "Edit Profile";
+}
+
+<div class="min-h-screen pt-12 flex justify-center bg-gray-50">
+    <div class="w-full max-w-2xl px-4 sm:px-6 lg:px-8">
+
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-6 text-center">Edit Your Profile</h1>
+
+        <div class="bg-white rounded-xl shadow-2xl p-8 sm:p-10">
+
+            <form asp-controller="Profile" asp-action="EditProfile" method="post">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" asp-for="UserId" />
+
+                <div asp-validation-summary="ModelOnly" class="text-red-500 font-medium mb-4 p-3 bg-red-50 rounded-lg border border-red-200"></div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email (Cannot be changed here)</label>
+                    <input type="text" asp-for="CurrentEmail" readonly
+                           class="w-full p-3 border border-gray-200 bg-gray-100 rounded-lg cursor-not-allowed" />
+                </div>
+
+                <div class="mb-6">
+                    <label asp-for="FullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input asp-for="FullName"
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150" />
+                    <span asp-validation-for="FullName" class="text-red-500 text-sm mt-1 block"></span>
+                </div>
+
+                <div class="mb-8">
+                    <label asp-for="UserName" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input asp-for="UserName"
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150" />
+                    <span asp-validation-for="UserName" class="text-red-500 text-sm mt-1 block"></span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-between gap-4">
+
+                    <a asp-controller="Profile" asp-action="ProfileDetails"
+                       class="flex justify-center items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-100 transition duration-150 shadow-sm w-full sm:w-1/2">
+                        Cancel
+                    </a>
+
+                    <button type="submit"
+                            class="w-full sm:w-1/2 px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300/50 transition duration-150 shadow-lg">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -1,0 +1,128 @@
+﻿@using Microsoft.AspNetCore.Mvc.ViewFeatures
+@using System.Text.Json
+@{
+    // 1. Read TempData without consuming it yet
+    var successMessage = TempData.Peek("SuccessMessage") as string;
+    var warningMessage = TempData.Peek("WarningMessage") as string;
+    // Note: We are ignoring "ErrorMessage" per your request.
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - AIChatApp</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="bg-gray-50 text-gray-900">
+    <nav class="w-full bg-white shadow-sm fixed top-0 left-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0 text-xl font-bold text-indigo-600">AIChatApp</div>
+
+                @* ... (Your existing Navigation Links) ... *@
+                <div class="hidden md:flex space-x-6 text-gray-700 font-medium">
+                    @if (User?.Identity?.IsAuthenticated ?? false)
+                    {
+                        <a asp-controller="Home" asp-action="Index" class="hover:text-indigo-600 transition">Home</a>
+                        <a href="/Chats" class="hover:text-indigo-600 transition">Chats</a>
+                        <a asp-controller="Profile" asp-action="ProfileDetails" class="hover:text-indigo-600 transition">Profile</a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Home" asp-action="Index" class="hover:text-indigo-600 transition">Home</a>
+                        <a asp-controller="Auth" asp-action="Login" class="hover:text-indigo-600 transition">Sign In</a>
+                        <a asp-controller="Auth" asp-action="Register" class="hover:text-indigo-600 transition">Sign Up</a>
+                    }
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    @if (User?.Identity?.IsAuthenticated ?? false)
+                    {
+                        <form asp-controller="Auth" asp-action="Logout" method="post" id="logoutForm">
+                            @Html.AntiForgeryToken()
+                            <button type="button" onclick="confirmLogout(event)" class="text-red-600 font-medium">Logout</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 min-h-screen">
+        @RenderBody()
+    </main>
+
+    @* --- MODAL STRUCTURE --- *@
+    <div id="action-modal" class="fixed inset-0 z-[9999] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+
+        @* 1. Background Overlay with BLUR (backdrop-blur-md) *@
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-md"></div>
+
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-300">
+
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div id="modal-icon-container" class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                                @* Icon injected via JS *@
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">
+                                    @* Title injected via JS *@
+                                </h3>
+                                <div class="mt-2">
+                                    <p id="modal-message-content" class="text-sm text-gray-500">
+                                        @* Message injected via JS *@
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="button" id="modal-action-button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto">
+                            OK
+                        </button>
+
+                        @* 2. Added ID 'modal-cancel-button' for robust selection *@
+                        <button type="button" id="modal-cancel-button" onclick="closeActionModal()" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Load Scripts *@
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    @* --- TEMP DATA MESSAGE HANDLER --- *@
+    @if (!string.IsNullOrEmpty(successMessage) || !string.IsNullOrEmpty(warningMessage))
+    {
+        // Define variables in C# scope
+        var message = successMessage ?? warningMessage;
+        var type = successMessage != null ? "success" : "warning";
+        var title = type == "success" ? "Success" : "Action Required";
+
+        // Serialize to JSON to handle special characters safely
+        var jsonMessage = JsonSerializer.Serialize(message);
+        var jsonTitle = JsonSerializer.Serialize(title);
+
+        // Remove keys explicitly
+        if (successMessage != null) { TempData.Remove("SuccessMessage"); }
+        if (warningMessage != null) { TempData.Remove("WarningMessage"); }
+
+        <script type="text/javascript">
+            document.addEventListener('DOMContentLoaded', function () {
+                showSimpleToast(@Html.Raw(jsonTitle), @Html.Raw(jsonMessage), '@type');
+            });
+        </script>
+    }
+</body>
+</html>

@@ -1,0 +1,90 @@
+﻿@model AIChatApp.Application.DTOs.ProfileDetailsDto
+
+@{
+    ViewData["Title"] = "Profile Dashboard";
+}
+
+<div class="min-h-screen pt-12 flex justify-center bg-gray-50">
+    <div class="w-full max-w-4xl px-4 sm:px-6 lg:px-8">
+
+        <h1 class="text-4xl font-extrabold text-gray-900 mb-8 text-center">Your Account Details</h1>
+
+        <div class="bg-white rounded-xl shadow-2xl overflow-hidden mb-12">
+
+            <div class="p-8 sm:p-10 border-b border-gray-100">
+                <div class="flex items-center space-x-6">
+                    <img src="https://api.dicebear.com/7.x/initials/svg?seed=@Model.Email"
+                         class="w-20 h-20 rounded-full ring-4 ring-indigo-100/50"
+                         alt="User Avatar" />
+
+                    <div>
+                        <h2 class="text-2xl font-bold text-indigo-700">@Model.FullName</h2>
+                        <span class="text-lg text-gray-500">@@@Model.UserName</span>
+                        <span class="text-sm text-gray-500 block">Member since: @Model.RegisteredDate</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="p-8 sm:p-10 space-y-6">
+                <h3 class="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Account Information</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <p class="text-sm font-medium text-gray-500">Full Name</p>
+                        <p class="text-lg font-medium text-gray-900 truncate">@Model.FullName</p>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <p class="text-sm font-medium text-gray-500">Username</p>
+                        <p class="text-lg font-medium text-gray-900 truncate">@@@Model.UserName</p>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <p class="text-sm font-medium text-gray-500">Email Address</p>
+                        <p class="text-lg font-mono text-gray-900 truncate">@Model.Email</p>
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <p class="text-sm font-medium text-gray-500">Verification Status</p>
+                    @if (Model.IsVerified)
+                    {
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            Verified
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                            Unverified
+                        </span>
+                    }
+                </div>
+            </div>
+
+            <div class="p-8 sm:p-10 bg-gray-50 border-t border-gray-100">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">Account Actions</h3>
+                <div class="flex flex-col sm:flex-row gap-4">
+
+                    <a asp-controller="Profile" asp-action="EditProfile"
+                       class="flex-1 px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150 shadow-md text-center">
+                        Edit Profile
+                    </a>
+
+                    <a asp-controller="Profile" asp-action="ChangePassword"
+                       class="flex-1 px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition duration-150 shadow-sm">
+                        Change Password
+                    </a>
+
+                    <a asp-controller="Profile" asp-action="ConfirmDelete"
+                       class="flex-1 px-6 py-3 border border-red-500 text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition duration-150 shadow-md text-center">
+                        Delete Account
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

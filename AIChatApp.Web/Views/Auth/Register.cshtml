@@ -1,0 +1,64 @@
+﻿@model AIChatApp.Application.DTOs.RegisterDto
+
+@{
+    ViewData["Title"] = "Register";
+    Layout = "_Layout"; // Ensure you are using your main layout
+}
+
+<div class="min-h-screen flex items-center justify-center bg-gray-100 p-4 sm:p-6 lg:p-8">
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+        <h2 class="text-3xl font-extrabold text-gray-900 text-center mb-6">Create Your Account</h2>
+        <p class="text-center text-gray-600 mb-8">Join the AIChatApp community today!</p>
+
+        <form asp-controller="Auth" asp-action="Register" method="post" class="space-y-6">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-red-600 text-sm font-medium mb-4"></div>
+
+            <div>
+                <label asp-for="FullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input asp-for="FullName" type="text" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm placeholder-gray-400" placeholder="John Doe">
+                <span asp-validation-for="FullName" class="mt-2 text-sm text-red-600"></span>
+            </div>
+
+            <div>
+                <label asp-for="UserName" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input asp-for="UserName" type="text" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm placeholder-gray-400" placeholder="johndoe">
+                <span asp-validation-for="UserName" class="mt-2 text-sm text-red-600"></span>
+            </div>
+
+            <div>
+                <label asp-for="Email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input asp-for="Email" type="email" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm placeholder-gray-400" placeholder="you@example.com">
+                <span asp-validation-for="Email" class="mt-2 text-sm text-red-600"></span>
+            </div>
+
+            <div>
+                <label asp-for="Password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input asp-for="Password" type="password" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm placeholder-gray-400" placeholder="Minimum 6 characters">
+                <span asp-validation-for="Password" class="mt-2 text-sm text-red-600"></span>
+            </div>
+
+            <div>
+                <label asp-for="ConfirmPassword" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                <input asp-for="ConfirmPassword" type="password" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm placeholder-gray-400" placeholder="Re-enter your password">
+                <span asp-validation-for="ConfirmPassword" class="mt-2 text-sm text-red-600"></span>
+            </div>
+
+            <div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                    Register
+                </button>
+            </div>
+        </form>
+
+        <p class="mt-8 text-center text-sm text-gray-600">
+            Already have an account? <a href="/Auth/Login" class="font-medium text-indigo-600 hover:text-indigo-500">Sign in here</a>
+        </p>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
