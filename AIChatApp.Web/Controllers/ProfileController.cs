@@ -14,11 +14,13 @@ public class ProfileController : Controller
 {
     private readonly IUserRepository _userRepository;
     private readonly IAuthService _authService;
+    private readonly IFileStorageService _fileStorageService;
 
-    public ProfileController(IUserRepository userRepository, IAuthService authService)
+    public ProfileController(IUserRepository userRepository, IAuthService authService, IFileStorageService fileStorageService)
     {
         _userRepository = userRepository;
         _authService = authService;
+        _fileStorageService = fileStorageService;
     }
 
     private Guid GetCurrentUserId()
@@ -54,13 +56,15 @@ public class ProfileController : Controller
         var user = await _userRepository.GetByIdAsync(GetCurrentUserId());
         if (user == null) return NotFound();
 
-        var profileDto = new ProfileDetailsDto
+        var profileDto = new ProfileDetailsDto // Ensure this DTO has the ProfileImageUrl property
         {
             FullName = user.FullName,
             UserName = user.UserName,
             Email = user.Email,
             RegisteredDate = user.CreatedAt.ToShortDateString(),
-            IsVerified = user.IsVerified
+            IsVerified = user.IsVerified,
+            // 💡 CRITICAL ADDITION: Map the ProfileImageUrl from the User entity
+            ProfileImageUrl = user.ProfileImageUrl
         };
 
         return View(profileDto);
@@ -185,5 +189,72 @@ public class ProfileController : Controller
         // Handle specific error messages from the service
         ModelState.AddModelError(nameof(model.CurrentPassword), result);
         return View(model);
+    }
+
+    [HttpGet]
+    public IActionResult ChangeProfilePicture()
+    {
+        return View(new UpdateProfilePictureDto { UserId = GetCurrentUserId() });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangeProfilePicture(UpdateProfilePictureDto model)
+    {
+        // 1. Validate DTO
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        // 2. Get User
+        var userToUpdate = await _userRepository.GetByIdAsync(GetCurrentUserId());
+        if (userToUpdate == null || userToUpdate.Id != model.UserId)
+        {
+            return NotFound();
+        }
+
+        // 3. Handle File Upload
+        try
+        {
+            // For file uploads, we generally want a unique name, not the original filename
+            string fileExtension = Path.GetExtension(model.ProfileImageFile.FileName);
+            string fileName = $"{model.UserId}{fileExtension}"; // Use user ID for easy lookup/replacement
+
+            // Delete the old profile image if it exists
+            if (!string.IsNullOrEmpty(userToUpdate.ProfileImageUrl))
+            {
+                await _fileStorageService.DeleteFileAsync(userToUpdate.ProfileImageUrl);
+            }
+
+            // Upload the new file and get the new URL
+            using (var stream = model.ProfileImageFile.OpenReadStream())
+            {
+                var newImageUrl = await _fileStorageService.UploadFileAsync(
+                    stream,
+                    fileName, // Use the more unique name for storage service
+                    model.ProfileImageFile.ContentType);
+
+                // 4. Update User Entity
+                userToUpdate.ProfileImageUrl = newImageUrl;
+            }
+
+            // 5. Save Changes
+            await _userRepository.UpdateAsync(userToUpdate);
+            await _userRepository.SaveChangesAsync();
+
+            // Re-sign in the user to update any claims that might hold the profile picture URL (not strictly needed 
+            // for this implementation, but good practice if you had a claim for it)
+            // await ReSignInUser(userToUpdate); 
+
+            TempData["SuccessMessage"] = "Profile picture successfully updated!";
+            return RedirectToAction("ProfileDetails");
+        }
+        catch (Exception ex)
+        {
+            // Log the exception (recommended)
+            ModelState.AddModelError(string.Empty, $"An error occurred during file upload: {ex.Message}");
+            return View(model);
+        }
     }
 }

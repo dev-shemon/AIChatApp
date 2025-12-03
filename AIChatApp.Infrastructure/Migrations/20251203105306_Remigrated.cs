@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AIChatApp.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Remigrated : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -23,6 +23,8 @@ namespace AIChatApp.Infrastructure.Migrations
                     ProfileImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     VerificationToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     VerifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    PasswordResetToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ResetTokenExpires = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>

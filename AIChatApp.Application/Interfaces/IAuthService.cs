@@ -1,9 +1,4 @@
 ﻿using AIChatApp.Application.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AIChatApp.Application.Interfaces;
 
@@ -14,4 +9,7 @@ public interface IAuthService
     Task<string> LoginUserAsync(LoginDto request);
     Task<bool> VerifyPasswordAsync(string email, string password);
     Task<string> ChangePasswordAsync(Guid userId, ChangePasswordDto dto);
+    Task<string> ForgotPasswordAsync(ForgotPasswordDto request, string baseUrl);
+    Task<string> ResetPasswordAsync(ResetPasswordDto request);
+    Task<bool> ValidateResetTokenAsync(string email, string token);
 }

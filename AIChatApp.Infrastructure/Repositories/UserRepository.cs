@@ -29,10 +29,16 @@ public class UserRepository : IUserRepository
         return await _context.Users.FirstOrDefaultAsync(u => u.VerificationToken == token);
     }
 
+    public async Task<User?> GetByResetTokenAsync(string resetToken)
+    {
+        return await _context.Users.FirstOrDefaultAsync(u => u.PasswordResetToken == resetToken);
+    }
+
     public async Task<User?> GetByIdAsync(Guid id)
     {
         return await _context.Users.FindAsync(id);
     }
+
     public async Task<User?> GetByUsernameAsync(string username)
     {
         return await _context.Users
@@ -44,11 +50,13 @@ public class UserRepository : IUserRepository
         _context.Users.Update(user);
         return Task.CompletedTask;
     }
+
     public Task DeleteAsync(User user)
     {
         _context.Users.Remove(user);
         return Task.CompletedTask;
     }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

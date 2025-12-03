@@ -43,8 +43,14 @@ namespace AIChatApp.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PasswordResetToken")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ProfileImageUrl")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ResetTokenExpires")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserName")
                         .IsRequired()

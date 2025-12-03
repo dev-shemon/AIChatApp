@@ -3,7 +3,6 @@ using AIChatApp.Application.Interfaces;
 using AIChatApp.Domain.Entities;
 using AIChatApp.Domain.Interfaces;
 using System.Security.Cryptography;
-// Note: Removed the unused 'using BCrypt.Net.BCrypt;' dependency implicit in old code.
 
 namespace AIChatApp.Application.Services;
 
@@ -11,7 +10,7 @@ public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IEmailService _emailService;
-    private readonly IPasswordHasher _passwordHasher; // Already correctly injected
+    private readonly IPasswordHasher _passwordHasher;
 
     public AuthService(IUserRepository userRepository, IEmailService emailService, IPasswordHasher passwordHasher)
     {
@@ -22,17 +21,12 @@ public class AuthService : IAuthService
 
     public async Task<string> RegisterUserAsync(RegisterDto request, string baseUrl)
     {
-        // 1. Check if user exists
         var existingUser = await _userRepository.GetByEmailAsync(request.Email);
         if (existingUser != null) return "Email already registered.";
 
-        // 2. Hash Password (💡 FIXED: Use injected IPasswordHasher for consistency)
-        string passwordHash = _passwordHasher.HashPassword(request.Password); // Assuming IPasswordHasher has a HashPassword method
-
-        // 3. Create Verification Token
+        string passwordHash = _passwordHasher.HashPassword(request.Password);
         string token = Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
 
-        // 4. Create Entity
         var user = new User
         {
             FullName = request.FullName,
@@ -43,11 +37,9 @@ public class AuthService : IAuthService
             ProfileImageUrl = "default.png"
         };
 
-        // 5. Save to DB
         await _userRepository.AddAsync(user);
         await _userRepository.SaveChangesAsync();
 
-        // 6. Send Email
         string verifyLink = $"{baseUrl}/Auth/Verify?token={token}";
         await _emailService.SendVerificationEmailAsync(user.Email, verifyLink);
 
@@ -70,13 +62,11 @@ public class AuthService : IAuthService
     {
         var user = await _userRepository.GetByEmailAsync(request.Email);
 
-        // 1. User Not Found
         if (user == null)
         {
             return "Invalid credentials.";
         }
 
-        // 2. Password Verification (💡 FIXED: Use injected IPasswordHasher for consistency)
         bool isPasswordValid = _passwordHasher.VerifyPassword(user.PasswordHash, request.Password);
 
         if (!isPasswordValid)
@@ -84,17 +74,14 @@ public class AuthService : IAuthService
             return "Invalid credentials.";
         }
 
-        // 3. Email Verification Check
         if (!user.IsVerified)
         {
             return "Email not verified. Please check your inbox.";
         }
 
-        // 4. Success
         return user.Id.ToString();
     }
 
-    // 5. Password Verification for Deletion (Logic remains correct)
     public async Task<bool> VerifyPasswordAsync(string email, string password)
     {
         var user = await _userRepository.GetByEmailAsync(email);
@@ -104,7 +91,6 @@ public class AuthService : IAuthService
         }
 
         bool isPasswordValid = _passwordHasher.VerifyPassword(user.PasswordHash, password);
-
         return isPasswordValid;
     }
 
@@ -117,14 +103,81 @@ public class AuthService : IAuthService
             return "User not found.";
         }
 
-        // 1. Verify Current Password
         if (!_passwordHasher.VerifyPassword(user.PasswordHash, dto.CurrentPassword))
         {
             return "Incorrect current password.";
         }
 
-        // 2. Hash and Update New Password
         user.PasswordHash = _passwordHasher.HashPassword(dto.NewPassword);
+
+        await _userRepository.UpdateAsync(user);
+        await _userRepository.SaveChangesAsync();
+
+        return "Success";
+    }
+
+    public async Task<string> ForgotPasswordAsync(ForgotPasswordDto request, string baseUrl)
+    {
+        var user = await _userRepository.GetByEmailAsync(request.Email);
+
+        // For security, don't reveal if email exists or not
+        if (user == null)
+        {
+            return "Success";
+        }
+
+        // Generate reset token (valid for 1 hour)
+        string resetToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
+        user.PasswordResetToken = resetToken;
+        user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
+
+        await _userRepository.UpdateAsync(user);
+        await _userRepository.SaveChangesAsync();
+
+        // Send email with reset link
+        string resetLink = $"{baseUrl}/Auth/ResetPassword?token={resetToken}&email={Uri.EscapeDataString(user.Email)}";
+        await _emailService.SendPasswordResetEmailAsync(user.Email, resetLink);
+
+        return "Success";
+    }
+
+    public async Task<bool> ValidateResetTokenAsync(string email, string token)
+    {
+        var user = await _userRepository.GetByEmailAsync(email);
+
+        if (user == null)
+        {
+            return false;
+        }
+
+        // Check if token matches and hasn't expired
+        if (user.PasswordResetToken != token || user.ResetTokenExpires == null || user.ResetTokenExpires < DateTime.UtcNow)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public async Task<string> ResetPasswordAsync(ResetPasswordDto request)
+    {
+        // Validate the token first
+        if (!await ValidateResetTokenAsync(request.Email, request.Token))
+        {
+            return "Invalid or expired reset link.";
+        }
+
+        var user = await _userRepository.GetByEmailAsync(request.Email);
+
+        if (user == null)
+        {
+            return "User not found.";
+        }
+
+        // Hash and update password
+        user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+        user.PasswordResetToken = null;
+        user.ResetTokenExpires = null;
 
         await _userRepository.UpdateAsync(user);
         await _userRepository.SaveChangesAsync();

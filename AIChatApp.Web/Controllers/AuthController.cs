@@ -52,7 +52,6 @@ public class AuthController : Controller
         var isVerified = await _authService.VerifyEmailAsync(token);
         if (isVerified)
         {
-            // Set Success message for the user after verification
             TempData["SuccessMessage"] = "Email successfully verified! You can now log in.";
             return View("VerifySuccess");
         }
@@ -72,11 +71,8 @@ public class AuthController : Controller
     {
         if (User.Identity.IsAuthenticated)
         {
-            // Set the TempData for the modal (This uses your existing modal logic)
             TempData["ToastType"] = "warning";
             TempData["ToastMessage"] = "You are currently signed in. Redirecting you to the homepage.";
-
-            // Immediately redirect the user to prevent processing the login again.
             return RedirectToAction("Index", "Home");
         }
 
@@ -92,13 +88,12 @@ public class AuthController : Controller
 
         Guid userId = new Guid(result);
 
-        // --- Create Session Claims (Simplified) ---
         var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Email, model.Email),
-                new Claim(ClaimTypes.Name, model.Email)
-            };
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Email, model.Email),
+            new Claim(ClaimTypes.Name, model.Email)
+        };
 
         var claimsIdentity = new ClaimsIdentity(claims, "CookieAuth");
         var authProperties = new AuthenticationProperties
@@ -109,10 +104,86 @@ public class AuthController : Controller
 
         await HttpContext.SignInAsync("CookieAuth", new ClaimsPrincipal(claimsIdentity), authProperties);
 
-        // 💡 ADDED: Set Success message
         TempData["SuccessMessage"] = "Login successful! Welcome back.";
-
         return RedirectToAction("Index", "Home");
+    }
+
+    [HttpGet]
+    public IActionResult ForgotPassword()
+    {
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordDto model)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
+
+        string baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var result = await _authService.ForgotPasswordAsync(model, baseUrl);
+
+        // Always return success message for security (don't reveal if email exists)
+        TempData["SuccessMessage"] = "If an account exists with that email, a password reset link has been sent.";
+        return RedirectToAction("ForgotPasswordSuccess");
+    }
+
+    [HttpGet]
+    public IActionResult ForgotPasswordSuccess()
+    {
+        return View();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ResetPassword(string token, string email)
+    {
+        if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(email))
+        {
+            TempData["ErrorMessage"] = "Invalid reset link.";
+            return RedirectToAction("Login");
+        }
+
+        // Validate the token
+        bool isValid = await _authService.ValidateResetTokenAsync(email, token);
+        if (!isValid)
+        {
+            TempData["ErrorMessage"] = "Invalid or expired reset link.";
+            return RedirectToAction("Login");
+        }
+
+        var model = new ResetPasswordDto
+        {
+            Token = token,
+            Email = email
+        };
+
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordDto model)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
+
+        var result = await _authService.ResetPasswordAsync(model);
+
+        if (result == "Success")
+        {
+            TempData["SuccessMessage"] = "Password successfully reset! You can now log in with your new password.";
+            return RedirectToAction("ResetPasswordSuccess");
+        }
+
+        TempData["ErrorMessage"] = result;
+        return RedirectToAction("Login");
+    }
+
+    [HttpGet]
+    public IActionResult ResetPasswordSuccess()
+    {
+        return View();
     }
 
     [HttpPost]

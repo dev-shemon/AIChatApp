@@ -9,6 +9,8 @@
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="FluentValidation" Version="12.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="2.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>

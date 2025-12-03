@@ -27,7 +27,11 @@
             </div>
 
             <div class="flex items-center justify-end">
-                <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Forgot your password?</a>
+                <a asp-controller="Auth"
+                   asp-action="ForgotPassword"
+                   class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                    Forgot your password?
+                </a>
             </div>
 
             <div>

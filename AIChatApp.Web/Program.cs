@@ -25,6 +25,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordHasher, CustomPasswordHasher>();
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 // Antiforgery cookie: ensure secure, appropriate SameSite
 builder.Services.AddAntiforgery(options =>
