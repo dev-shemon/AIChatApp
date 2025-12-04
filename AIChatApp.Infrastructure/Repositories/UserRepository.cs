@@ -57,6 +57,49 @@ public class UserRepository : IUserRepository
         return Task.CompletedTask;
     }
 
+    public async Task<List<User>> GetRecentUsersAsync(DateTime cutoffDate, Guid excludedUserId)
+    {
+        return await _context.Users
+            .Where(u => u.Id != excludedUserId && u.CreatedAt >= cutoffDate) // Added Filter
+            .OrderByDescending(u => u.CreatedAt)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<List<User>> GetRandomUsersAsync(int count, Guid excludedUserId)
+    {
+        // Fetch only IDs first for efficiency, then randomize in memory
+        var userIds = await _context.Users
+            .Where(u => u.Id != excludedUserId)
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        // Randomize using local random (much faster than DB-side GUID generation)
+        var randomIds = userIds
+            .OrderBy(_ => Random.Shared.Next())
+            .Take(count)
+            .ToList();
+
+        // Fetch the actual user data
+        return await _context.Users
+            .Where(u => randomIds.Contains(u.Id))
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<List<User>> SearchUsersAsync(string query, Guid excludedUserId)
+    {
+        var normalizedQuery = query.Trim();
+
+        // SQL Server LIKE is case-insensitive by default, but explicit case-insensitive comparison is safer
+        return await _context.Users
+            .Where(u => u.Id != excludedUserId && 
+                       (EF.Functions.Like(u.FullName, $"%{normalizedQuery}%", "\\") ||
+                        EF.Functions.Like(u.UserName, $"%{normalizedQuery}%", "\\")))
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

@@ -9,21 +9,29 @@ namespace AIChatApp.Infrastructure.Email;
 public class EmailService : IEmailService
 {
     private readonly EmailSettings _emailSettings;
+    private SmtpClient? _smtpClient;
 
     public EmailService(IOptions<EmailSettings> emailSettings)
     {
         _emailSettings = emailSettings.Value;
     }
 
+    // Lazy initialization of SMTP client (reused across calls)
+    private SmtpClient GetSmtpClient()
+    {
+        _smtpClient ??= new SmtpClient(_emailSettings.SmtpHost, _emailSettings.SmtpPort)
+        {
+            Credentials = new NetworkCredential(_emailSettings.SmtpUser, _emailSettings.SmtpPass),
+            EnableSsl = _emailSettings.EnableSsl
+        };
+        return _smtpClient;
+    }
+
     public async Task SendVerificationEmailAsync(string toEmail, string verificationLink)
     {
         try
         {
-            using var client = new SmtpClient(_emailSettings.SmtpHost, _emailSettings.SmtpPort)
-            {
-                Credentials = new NetworkCredential(_emailSettings.SmtpUser, _emailSettings.SmtpPass),
-                EnableSsl = _emailSettings.EnableSsl
-            };
+            var client = GetSmtpClient();
 
             var mailMessage = new MailMessage(_emailSettings.FromEmail, toEmail)
             {
@@ -42,6 +50,7 @@ public class EmailService : IEmailService
             };
 
             await client.SendMailAsync(mailMessage);
+            mailMessage.Dispose();
             Console.WriteLine($"Verification email successfully sent to {toEmail}");
         }
         catch (Exception ex)
@@ -55,11 +64,7 @@ public class EmailService : IEmailService
     {
         try
         {
-            using var client = new SmtpClient(_emailSettings.SmtpHost, _emailSettings.SmtpPort)
-            {
-                Credentials = new NetworkCredential(_emailSettings.SmtpUser, _emailSettings.SmtpPass),
-                EnableSsl = _emailSettings.EnableSsl
-            };
+            var client = GetSmtpClient();
 
             var mailMessage = new MailMessage(_emailSettings.FromEmail, toEmail)
             {
@@ -79,6 +84,7 @@ public class EmailService : IEmailService
             };
 
             await client.SendMailAsync(mailMessage);
+            mailMessage.Dispose();
             Console.WriteLine($"Password reset email successfully sent to {toEmail}");
         }
         catch (Exception ex)
