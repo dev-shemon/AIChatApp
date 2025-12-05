@@ -1,21 +1,62 @@
 ﻿@model AIChatApp.Domain.DTOs.UserListDto
 
-<div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
-    <div class="flex items-center space-x-4">
-        @if (!string.IsNullOrEmpty(Model.ProfileImageUrl))
+@{
+    // Generate avatar URL using first letters of the name
+    string initials = "";
+    if (!string.IsNullOrEmpty(Model.FullName))
+    {
+        var nameParts = Model.FullName.Trim().Split(' ');
+        if (nameParts.Length >= 2)
         {
-            <img src="@Model.ProfileImageUrl" alt="@Model.FullName" class="h-12 w-12 rounded-full object-cover border border-gray-300">
+            // Two initials: First letter of first name + First letter of last name
+            initials = $"{nameParts[0][0]}{nameParts[nameParts.Length - 1][0]}".ToUpper();
         }
-        else
+        else if (nameParts.Length == 1)
         {
-            <div class="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg border border-indigo-200">
-                @Model.FullName.FirstOrDefault()
-            </div>
+            // One initial: First letter of the name
+            initials = nameParts[0][0].ToString().ToUpper();
         }
-        <div>
-            <h4 class="text-md font-bold text-gray-900 leading-tight">@Model.FullName</h4>
-            <p class="text-sm text-gray-500">@@@Model.UserName</p>
-            <p class="text-xs text-gray-400 mt-1">Joined: @Model.CreatedAt.ToShortDateString()</p>
+    }
+
+    // Generate avatar using UI Avatars API or use uploaded picture
+    string avatarUrl = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(initials)}&background=random&color=fff&size=56&bold=true&font-size=0.33";
+    string profileImageSource = !string.IsNullOrEmpty(Model.ProfileImageUrl) ? Model.ProfileImageUrl : avatarUrl;
+}
+
+<!-- Card Container -->
+<div class="group relative flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:border-gray-300 hover:shadow-sm transition-all duration-200 ease-in-out cursor-default">
+
+    <!-- Left Side: Avatar & Info -->
+    <div class="flex items-center gap-4">
+
+        <!-- Avatar with Active Indicator -->
+        <div class="relative flex-shrink-0">
+            <img src="@profileImageSource"
+                 alt="@Model.FullName"
+                 class="h-14 w-14 rounded-full object-cover bg-gray-50 border border-gray-200"
+                 onerror="this.onerror=null;this.src='@avatarUrl';" />
+
+            <!-- Active Status Dot (Green = Online, Gray = Offline) -->
+            <span class="absolute bottom-0 right-0 block h-3.5 w-3.5 rounded-full ring-2 ring-white bg-green-500" title="Active"></span>
         </div>
+
+        <!-- Text Info -->
+        <div class="flex flex-col">
+            <h4 class="text-base font-bold text-gray-900 leading-tight group-hover:text-black transition-colors">
+                @Model.FullName
+            </h4>
+            <span class="text-sm text-gray-500 font-medium">@@@Model.UserName</span>
+            <span class="text-xs text-gray-400 mt-0.5">Joined @Model.CreatedAt.ToString("MMM yyyy")</span>
+        </div>
+    </div>
+
+    <!-- Right Side: Action Button -->
+    <!-- This icon fades in when you hover over the card -->
+    <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <a href="/Chats?userId=@Model.Id" class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-black text-white hover:bg-gray-800 transition-colors shadow-sm" title="Send Message">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+        </a>
     </div>
 </div>

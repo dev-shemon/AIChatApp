@@ -1,48 +1,86 @@
 ﻿@model AIChatApp.Application.DTOs.UpdateProfilePictureDto
 
 @{
-    ViewData["Title"] = "Change Profile Picture";
+    ViewData["Title"] = "Update Photo";
+
+    // Use the current profile picture if available, otherwise show a placeholder
+    string imageSource = string.IsNullOrEmpty(Model.CurrentProfilePictureUrl)
+        ? "https://ui-avatars.com/api/?name=User&background=f3f4f6&color=6b7280&size=256"
+        : Model.CurrentProfilePictureUrl;
 }
 
-<div class="min-h-screen pt-12 flex justify-center bg-gray-50">
-    <div class="w-full max-w-2xl px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-white py-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-xl mx-auto">
 
-        <h1 class="text-3xl font-extrabold text-gray-900 mb-6 text-center">Update Profile Picture</h1>
-
-        <div class="bg-white rounded-xl shadow-2xl p-8 sm:p-10">
-
-            <form asp-controller="Profile" asp-action="ChangeProfilePicture" method="post" enctype="multipart/form-data">
-                @Html.AntiForgeryToken()
-
-                <input type="hidden" asp-for="UserId" />
-
-                <div asp-validation-summary="ModelOnly" class="text-red-500 font-medium mb-4 p-3 bg-red-50 rounded-lg border border-red-200"></div>
-
-                <div class="mb-8">
-                    <label asp-for="ProfileImageFile" class="block text-sm font-medium text-gray-700 mb-2">Select New Profile Image</label>
-
-                    <input type="file" asp-for="ProfileImageFile" accept="image/jpeg,image/png"
-                           class="w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:py-3 file:px-4 file:border-0 file:bg-indigo-600 file:text-white file:font-semibold file:mr-4 file:hover:bg-indigo-700" />
-
-                    <p class="mt-2 text-sm text-gray-500">JPG or PNG (Max 5MB recommended)</p>
-                    <span asp-validation-for="ProfileImageFile" class="text-red-500 text-sm mt-1 block"></span>
-                </div>
-
-                <div class="flex flex-col sm:flex-row justify-between gap-4">
-
-                    <a asp-controller="Profile" asp-action="ProfileDetails"
-                       class="flex justify-center items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-100 transition duration-150 shadow-sm w-full sm:w-1/2">
-                        Cancel
-                    </a>
-
-                    <button type="submit"
-                            class="w-full sm:w-1/2 px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300/50 transition duration-150 shadow-lg">
-                        Upload Picture
-                    </button>
-                </div>
-            </form>
-
+        <!-- Header -->
+        <div class="mb-10 text-center">
+            <h1 class="text-3xl font-bold tracking-tight text-gray-900">Update photo</h1>
+            <p class="mt-2 text-sm text-gray-500">Choose a high-quality image for your profile.</p>
         </div>
+
+        <form asp-controller="Profile" asp-action="ChangeProfilePicture" method="post" enctype="multipart/form-data" class="space-y-8">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="UserId" />
+            <input type="hidden" asp-for="CurrentProfilePictureUrl" />
+
+            <!-- Error Summary -->
+            <div asp-validation-summary="ModelOnly" class="p-4 text-sm text-red-800 rounded-lg bg-red-50 border border-red-100" role="alert"></div>
+
+            <!-- Image Preview & Selection Area -->
+            <div class="flex flex-col items-center space-y-6">
+
+                <!-- Preview Circle -->
+                <div class="relative group">
+                    <div class="h-40 w-40 rounded-full overflow-hidden border-2 border-gray-100 ring-2 ring-transparent group-hover:ring-gray-200 transition-all duration-300">
+                        <img id="imagePreview"
+                             src="@imageSource"
+                             alt="Profile Preview"
+                             class="h-full w-full object-cover bg-gray-50" />
+                    </div>
+
+                    <!-- Overlay Icon -->
+                    <div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <svg class="h-8 w-8 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Current Image Info -->
+                @if (!string.IsNullOrEmpty(Model.CurrentProfilePictureUrl))
+                {
+                    <p class="text-xs text-gray-500 text-center">Current profile picture is shown above.</p>
+                }
+
+                <!-- Custom File Input Button -->
+                <div class="w-full text-center">
+                    <label for="file-upload" class="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-black transition-all">
+                        <span>Select New Image</span>
+                        <input id="file-upload"
+                               asp-for="ProfileImageFile"
+                               type="file"
+                               accept="image/jpeg,image/png,image/webp"
+                               class="sr-only"
+                               onchange="previewFile(event)" />
+                    </label>
+                    <p class="mt-2 text-xs text-gray-500">JPG, PNG, or WebP. Max 5MB.</p>
+                    <span asp-validation-for="ProfileImageFile" class="mt-2 block text-sm text-red-500 font-medium"></span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="pt-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <a asp-controller="Profile" asp-action="ProfileDetails"
+                   class="inline-flex w-full sm:w-auto justify-center rounded-md border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all">
+                    Update Photo
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -50,4 +88,5 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script src="~/js/site.js" asp-append-version="true"></script>
 }

@@ -8,60 +8,75 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 }
-<div class="min-h-screen pt-12 flex justify-center bg-gray-50">
-    <div class="w-full max-w-2xl px-4 sm:px-6 lg:px-8">
 
-        <h1 class="text-3xl font-extrabold text-gray-900 mb-6 text-center">Edit Your Profile</h1>
-
-        <div class="bg-white rounded-xl shadow-2xl p-8 sm:p-10">
-
-            <form asp-controller="Profile" asp-action="EditProfile" method="post">
-                @Html.AntiForgeryToken()
-
-                <input type="hidden" asp-for="UserId" />
-
-                <div asp-validation-summary="ModelOnly" class="text-red-500 font-medium mb-4 p-3 bg-red-50 rounded-lg border border-red-200"></div>
-
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email (Cannot be changed here)</label>
-                    <input type="text" asp-for="CurrentEmail" readonly
-                           class="w-full p-3 border border-gray-200 bg-gray-100 rounded-lg cursor-not-allowed" />
-                </div>
-
-                <div class="mb-6">
-                    <label asp-for="FullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input asp-for="FullName"
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150" />
-                    <span asp-validation-for="FullName" class="text-red-500 text-sm mt-1 block"></span>
-                </div>
-
-                <div class="mb-8">
-                    <label asp-for="UserName" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                    <input asp-for="UserName"
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150" />
-                    <span asp-validation-for="UserName" class="text-red-500 text-sm mt-1 block"></span>
-                </div>
-
-                <div class="flex flex-col sm:flex-row justify-between gap-4">
-
-                    <a asp-controller="Profile" asp-action="ProfileDetails"
-                       class="flex justify-center items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-100 transition duration-150 shadow-sm w-full sm:w-1/2">
-                        Cancel
-                    </a>
-
-                    <button type="submit"
-                            class="w-full sm:w-1/2 px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300/50 transition duration-150 shadow-lg">
-                        Save Changes
-                    </button>
-                </div>
-            </form>
-
+<div class="min-h-screen bg-white py-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl mx-auto">
+        
+        <!-- Header Section -->
+        <div class="mb-10 text-center">
+            <h1 class="text-3xl font-bold tracking-tight text-gray-900">Edit Profile</h1>
+            <p class="mt-2 text-sm text-gray-500">Update your personal information and public profile settings.</p>
         </div>
+
+        <!-- Form Section -->
+        <form asp-controller="Profile" asp-action="EditProfile" method="post" class="space-y-8">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="UserId" />
+
+            <div asp-validation-summary="ModelOnly" class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 border border-red-100" role="alert"></div>
+
+            <div class="space-y-6">
+                
+                <!-- Read-only Email -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <div class="relative">
+                        <input type="text" asp-for="CurrentEmail" readonly
+                               class="block w-full rounded-md border-gray-200 bg-gray-50 text-gray-500 shadow-sm focus:border-gray-200 focus:ring-0 sm:text-sm px-4 py-3 cursor-not-allowed" />
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-400">Email addresses cannot be changed for security reasons.</p>
+                </div>
+
+                <!-- Full Name -->
+                <div>
+                    <label asp-for="FullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input asp-for="FullName" type="text" 
+                           class="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm px-4 py-3 bg-gray-50 focus:bg-white transition-colors placeholder-gray-400" />
+                    <span asp-validation-for="FullName" class="mt-1 text-xs text-red-500"></span>
+                </div>
+
+                <!-- Username -->
+                <div>
+                    <label asp-for="UserName" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <div class="flex rounded-md shadow-sm">
+                        <span class="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">@@</span>
+                        <input asp-for="UserName" type="text" 
+                               class="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-gray-300 focus:border-black focus:ring-black sm:text-sm px-4 py-3 bg-gray-50 focus:bg-white transition-colors placeholder-gray-400" />
+                    </div>
+                    <span asp-validation-for="UserName" class="mt-1 text-xs text-red-500"></span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="pt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t border-gray-100">
+                <a asp-controller="Profile" asp-action="ProfileDetails"
+                   class="inline-flex w-full sm:w-auto justify-center rounded-md border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all">
+                    Save Changes
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
 }

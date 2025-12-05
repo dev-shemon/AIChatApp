@@ -3,21 +3,26 @@
     Layout = "_Layout";
 }
 
-<div class="min-h-screen flex items-center justify-center bg-gray-100 p-4 sm:p-6 lg:p-8">
-    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md text-center">
-        <div class="flex justify-center mb-6">
-            <svg class="h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+<div class="flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md text-center">
+        <!-- Minimalist Success Icon -->
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 mb-6">
+            <svg class="h-8 w-8 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
         </div>
-        <h2 class="text-3xl font-extrabold text-gray-900 mb-4">Registration Successful!</h2>
-        <p class="text-lg text-gray-700 mb-6">
-            Thank you for registering. We've sent an email to your address.
+
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 mb-4">Welcome aboard!</h2>
+
+        <p class="text-lg text-gray-900 font-medium mb-2">
+            Your registration was successful.
         </p>
-        <p class="text-gray-600 mb-8">
-            Please check your inbox (and spam folder) to verify your account and activate your membership.
+
+        <p class="text-gray-500 leading-relaxed mb-8">
+            We've sent a verification email to your inbox. Please verify your account to access all features. Don't forget to check your spam folder just in case.
         </p>
-        <a href="/Auth/Login" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+
+        <a href="/Auth/Login" class="inline-flex w-full justify-center rounded-md border border-transparent bg-black py-3 px-4 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all duration-200">
             Go to Login
         </a>
     </div>

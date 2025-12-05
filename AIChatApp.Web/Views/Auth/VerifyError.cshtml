@@ -3,25 +3,32 @@
     Layout = "_Layout";
 }
 
-<div class="min-h-screen flex items-center justify-center bg-gray-100 p-4 sm:p-6 lg:p-8">
-    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md text-center">
-        <div class="flex justify-center mb-6">
-            <svg class="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+<div class="flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8 bg-white min-h-[80vh]">
+    <div class="w-full max-w-md text-center space-y-6">
+
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-50">
+            <svg class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
         </div>
-        <h2 class="text-3xl font-extrabold text-gray-900 mb-4">Email Verification Failed!</h2>
-        <p class="text-lg text-gray-700 mb-6">
-            The verification link is invalid, expired, or has already been used.
-        </p>
-        <p class="text-gray-600 mb-8">
-            Please try registering again or contact support if you continue to experience issues.
-        </p>
-        <a href="/Auth/Register" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
-            Register Again
-        </a>
-        <a href="/Home" class="ml-4 inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
-            Go to Home
-        </a>
+
+        <div>
+            <h2 class="text-3xl font-bold tracking-tight text-gray-900">Verification Failed</h2>
+            <p class="mt-4 text-base text-gray-600">
+                The verification link is invalid, expired, or has already been used.
+            </p>
+            <p class="mt-2 text-sm text-gray-500">
+                Please try registering again or contact support if the issue persists.
+            </p>
+        </div>
+
+        <div class="pt-6 flex flex-col sm:flex-row gap-4 justify-center">
+            <a asp-controller="Auth" asp-action="Register" class="inline-flex justify-center rounded-md border border-transparent bg-black py-3 px-6 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all duration-200">
+                Register Again
+            </a>
+            <a asp-controller="Home" asp-action="Index" class="inline-flex justify-center rounded-md border border-gray-300 bg-white py-3 px-6 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all duration-200">
+                Go to Home
+            </a>
+        </div>
     </div>
 </div>

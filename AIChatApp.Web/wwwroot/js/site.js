@@ -1,4 +1,19 @@
 ﻿
+// Function to handle file selection and display an instant preview of the image.
+function previewFile(event) {
+    const file = event.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const preview = document.getElementById('imagePreview');
+            preview.src = e.target.result;
+            preview.alt = 'New profile preview';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+
 /**
  * Closes the generic action modal.
  */

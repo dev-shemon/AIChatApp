@@ -56,14 +56,13 @@ public class ProfileController : Controller
         var user = await _userRepository.GetByIdAsync(GetCurrentUserId());
         if (user == null) return NotFound();
 
-        var profileDto = new ProfileDetailsDto // Ensure this DTO has the ProfileImageUrl property
+        var profileDto = new ProfileDetailsDto
         {
             FullName = user.FullName,
             UserName = user.UserName,
             Email = user.Email,
-            RegisteredDate = user.CreatedAt.ToShortDateString(),
+            RegisteredDate = user.CreatedAt,
             IsVerified = user.IsVerified,
-            // 💡 CRITICAL ADDITION: Map the ProfileImageUrl from the User entity
             ProfileImageUrl = user.ProfileImageUrl
         };
 
@@ -117,7 +116,6 @@ public class ProfileController : Controller
 
         await ReSignInUser(userToUpdate);
 
-        // 💡 ADDED: Set success message
         TempData["SuccessMessage"] = "Profile successfully updated!";
         return RedirectToAction("ProfileDetails");
     }
@@ -154,7 +152,6 @@ public class ProfileController : Controller
 
         await HttpContext.SignOutAsync("CookieAuth");
 
-        // 💡 ADDED: Set success message
         TempData["SuccessMessage"] = "Your account has been successfully deleted.";
         return RedirectToAction("Index", "Home");
     }
@@ -176,25 +173,36 @@ public class ProfileController : Controller
 
         Guid userId = GetCurrentUserId();
 
-        // Call the application service to perform the logic
         var result = await _authService.ChangePasswordAsync(userId, model);
 
         if (result == "Success")
         {
-            // Set success message for the layout modal
             TempData["SuccessMessage"] = "Your password has been successfully updated!";
             return RedirectToAction(nameof(ProfileDetails));
         }
 
-        // Handle specific error messages from the service
         ModelState.AddModelError(nameof(model.CurrentPassword), result);
         return View(model);
     }
 
     [HttpGet]
-    public IActionResult ChangeProfilePicture()
+    public async Task<IActionResult> ChangeProfilePicture()
     {
-        return View(new UpdateProfilePictureDto { UserId = GetCurrentUserId() });
+        // 1. Get current user ID
+        Guid userId = GetCurrentUserId();
+
+        // 2. Fetch the user from database
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) return NotFound();
+
+        // 3. Create the DTO and populate with current picture URL
+        var model = new UpdateProfilePictureDto
+        {
+            UserId = userId,
+            CurrentProfilePictureUrl = user.ProfileImageUrl // ✅ Pass the current picture URL
+        };
+
+        return View(model);
     }
 
     [HttpPost]
@@ -204,6 +212,12 @@ public class ProfileController : Controller
         // 1. Validate DTO
         if (!ModelState.IsValid)
         {
+            // Reload current picture URL on validation error
+            var user = await _userRepository.GetByIdAsync(model.UserId);
+            if (user != null)
+            {
+                model.CurrentProfilePictureUrl = user.ProfileImageUrl;
+            }
             return View(model);
         }
 
@@ -217,43 +231,60 @@ public class ProfileController : Controller
         // 3. Handle File Upload
         try
         {
-            // For file uploads, we generally want a unique name, not the original filename
-            string fileExtension = Path.GetExtension(model.ProfileImageFile.FileName);
-            string fileName = $"{model.UserId}{fileExtension}"; // Use user ID for easy lookup/replacement
+            // Store the old image URL before deleting
+            string? oldImageUrl = userToUpdate.ProfileImageUrl;
 
-            // Delete the old profile image if it exists
-            if (!string.IsNullOrEmpty(userToUpdate.ProfileImageUrl))
-            {
-                await _fileStorageService.DeleteFileAsync(userToUpdate.ProfileImageUrl);
-            }
+            // For file uploads, use a unique name based on user ID
+            string fileExtension = Path.GetExtension(model.ProfileImageFile.FileName);
+            string fileName = $"{model.UserId}{fileExtension}";
 
             // Upload the new file and get the new URL
             using (var stream = model.ProfileImageFile.OpenReadStream())
             {
                 var newImageUrl = await _fileStorageService.UploadFileAsync(
                     stream,
-                    fileName, // Use the more unique name for storage service
+                    fileName,
                     model.ProfileImageFile.ContentType);
 
-                // 4. Update User Entity
+                // 4. Update User Entity with new image URL
                 userToUpdate.ProfileImageUrl = newImageUrl;
             }
 
-            // 5. Save Changes
+            // 5. Save Changes to Database FIRST (before deleting old image)
             await _userRepository.UpdateAsync(userToUpdate);
             await _userRepository.SaveChangesAsync();
 
-            // Re-sign in the user to update any claims that might hold the profile picture URL (not strictly needed 
-            // for this implementation, but good practice if you had a claim for it)
-            // await ReSignInUser(userToUpdate); 
+            // 6. DELETE THE OLD IMAGE from storage (after DB update succeeds)
+            // Only delete if an old image existed and it's different from the new one
+            if (!string.IsNullOrEmpty(oldImageUrl) && oldImageUrl != userToUpdate.ProfileImageUrl)
+            {
+                try
+                {
+                    await _fileStorageService.DeleteFileAsync(oldImageUrl);
+                }
+                catch (Exception deleteEx)
+                {
+                    // Log the error but don't fail the operation
+                    // The new image is already saved, so we can continue
+                    System.Diagnostics.Debug.WriteLine($"Error deleting old image: {deleteEx.Message}");
+                }
+            }
 
             TempData["SuccessMessage"] = "Profile picture successfully updated!";
             return RedirectToAction("ProfileDetails");
         }
         catch (Exception ex)
         {
-            // Log the exception (recommended)
+            // Log the exception
             ModelState.AddModelError(string.Empty, $"An error occurred during file upload: {ex.Message}");
+
+            // Reload current picture URL on error
+            var user = await _userRepository.GetByIdAsync(model.UserId);
+            if (user != null)
+            {
+                model.CurrentProfilePictureUrl = user.ProfileImageUrl;
+            }
+
             return View(model);
         }
     }

@@ -1,6 +1,62 @@
 ﻿@{
     ViewData["Title"] = "Privacy Policy";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div class="bg-white min-h-screen py-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+
+        <div class="text-center mb-16">
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900 mb-4">Privacy Policy</h1>
+            <p class="text-lg text-gray-500">Last updated: @DateTime.Now.ToString("MMMM dd, yyyy")</p>
+        </div>
+
+        <div class="prose prose-lg prose-gray max-w-none text-gray-600 space-y-12">
+            <section>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
+                <p class="leading-relaxed">
+                    At <span class="font-semibold text-black">AIChatApp</span>, we respect your privacy and are committed to protecting your personal data. This privacy policy will inform you as to how we look after your personal data when you visit our website and tell you about your privacy rights and how the law protects you.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">2. The Data We Collect</h2>
+                <p class="leading-relaxed mb-4">
+                    We may collect, use, store and transfer different kinds of personal data about you which we have grouped together follows:
+                </p>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong class="text-gray-900">Identity Data:</strong> includes first name, last name, username or similar identifier.</li>
+                    <li><strong class="text-gray-900">Contact Data:</strong> includes email address.</li>
+                    <li><strong class="text-gray-900">Technical Data:</strong> includes internet protocol (IP) address, your login data, browser type and version.</li>
+                    <li><strong class="text-gray-900">Usage Data:</strong> includes information about how you use our website and chat services.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">3. How We Use Your Data</h2>
+                <p class="leading-relaxed">
+                    We will only use your personal data when the law allows us to. Most commonly, we will use your personal data in the following circumstances:
+                </p>
+                <div class="mt-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+                    <p class="text-sm">
+                        To register you as a new customer.<br><br>
+                        To manage our relationship with you including notifying you about changes to our terms or privacy policy.<br><br>
+                        To administer and protect our business and this website (including troubleshooting, data analysis, testing, system maintenance, support, reporting and hosting of data).
+                    </p>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">4. Data Security</h2>
+                <p class="leading-relaxed">
+                    We have put in place appropriate security measures to prevent your personal data from being accidentally lost, used or accessed in an unauthorized way, altered or disclosed. In addition, we limit access to your personal data to those employees, agents, contractors and other third parties who have a business need to know.
+                </p>
+            </section>
+
+            <section class="border-t border-gray-100 pt-8">
+                <p class="text-sm text-gray-500">
+                    If you have any questions about this privacy policy, please contact us at <a href="mailto:support@aichatapp.com" class="text-black underline underline-offset-2 hover:text-gray-600 transition">support@aichatapp.com</a>.
+                </p>
+            </section>
+        </div>
+    </div>
+</div>

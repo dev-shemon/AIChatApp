@@ -1,46 +1,44 @@
 ﻿@model AIChatApp.Application.DTOs.DeleteAccountDto
 
 @{
-    ViewData["Title"] = "Confirm Account Deletion";
+    ViewData["Title"] = "Delete Account";
 }
 
-<div class="min-h-screen pt-12 flex justify-center bg-gray-50">
-    <div class="w-full max-w-md px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8 bg-white min-h-[80vh]">
+    <div class="w-full max-w-md text-center space-y-8">
 
-        <div class="bg-white rounded-xl shadow-2xl p-8 sm:p-10 border border-red-200">
-
-            <h1 class="text-3xl font-extrabold text-red-700 mb-4 text-center">Delete Account Confirmation</h1>
-            <p class="text-gray-600 mb-8 text-center">
-                This action is permanent and cannot be undone. Please enter your current password to verify your identity.
-            </p>
-
-            <form asp-controller="Profile" asp-action="DeleteAccount" method="post">
-                @Html.AntiForgeryToken()
-
-                <div asp-validation-summary="ModelOnly" class="text-red-600 font-medium mb-4 p-3 bg-red-50 rounded-lg border border-red-300"></div>
-
-                <div class="mb-6">
-                    <label asp-for="Password" class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-                    <input asp-for="Password"
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-150" />
-                    <span asp-validation-for="Password" class="text-red-500 text-sm mt-1 block"></span>
-                </div>
-
-                <div class="flex flex-col sm:flex-row justify-between gap-4 mt-6">
-
-                    <a asp-controller="Profile" asp-action="ProfileDetails"
-                       class="flex justify-center items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-100 transition duration-150 shadow-sm w-full sm:w-1/2">
-                        Cancel
-                    </a>
-
-                    <button type="submit"
-                            class="w-full sm:w-1/2 px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-300/50 transition duration-150 shadow-lg">
-                        Confirm Delete
-                    </button>
-                </div>
-            </form>
-
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-50">
+            <svg class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
         </div>
+
+        <div>
+            <h2 class="text-3xl font-bold tracking-tight text-gray-900">Delete Account</h2>
+            <p class="mt-4 text-gray-600">
+                This action is <strong>permanent</strong> and cannot be undone. All your data will be wiped immediately.
+            </p>
+        </div>
+
+        <form asp-controller="Profile" asp-action="DeleteAccount" method="post" class="mt-8 text-left">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-red-600 text-sm font-medium mb-4 text-center"></div>
+
+            <div class="mb-6">
+                <label asp-for="Password" class="block text-sm font-medium text-gray-700 mb-2">Enter your password to confirm</label>
+                <input asp-for="Password" type="password" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm px-4 py-3 bg-gray-50 focus:bg-white transition-colors" placeholder="Current Password">
+                <span asp-validation-for="Password" class="mt-1 text-xs text-red-500"></span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a asp-controller="Profile" asp-action="ProfileDetails" class="order-2 sm:order-1 flex-1 justify-center rounded-md border border-gray-300 bg-white py-3 px-4 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 text-center transition-all duration-200">
+                    Cancel
+                </a>
+                <button type="submit" class="order-1 sm:order-2 flex-1 justify-center rounded-md border border-transparent bg-red-600 py-3 px-4 text-sm font-semibold text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200">
+                    Yes, Delete My Account
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
