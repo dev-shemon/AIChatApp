@@ -9,4 +9,7 @@ public interface IMessageRepository
     Task<ChatConversation> GetOrCreateConversationAsync(Guid user1Id, Guid user2Id);
     Task MarkMessagesAsReadAsync(Guid senderId, Guid receiverId);
     Task<int> GetUnreadCountAsync(Guid userId);
+    Task<ChatMessage?> GetMessageByIdAsync(int messageId);
+    Task UpdateMessageAsync(ChatMessage message);
+    Task DeleteMessageAsync(ChatMessage message);
 }

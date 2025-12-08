@@ -1,159 +1,129 @@
-﻿// Chat functionality with Tailwind CSS
-(function () {
-    const currentUserId = document.getElementById('currentUserId').value;
-    const chatUserId = document.getElementById('chatUserId').value;
-    let connection;
-    let typingTimeout;
+﻿(function () {
+    // --- CONFIGURATION & STATE ---
+    const config = {
+        currentUserId: document.getElementById('currentUserId').value,
+        chatUserId: document.getElementById('chatUserId').value,
+        elements: {
+            messageInput: document.getElementById('messageInput'),
+            sendButton: document.getElementById('sendButton'),
+            messagesContainer: document.getElementById('chatMessages'),
+            typingIndicator: document.getElementById('typingIndicator'),
+            userStatus: document.getElementById('userStatus')
+        }
+    };
 
-    console.log("Chat initialized with:", { currentUserId, chatUserId });
+    let connection = null;
+    let typingTimeout = null;
+    let isConnected = false;
 
-    // Auto-resize textarea
-    const messageInput = document.getElementById('messageInput');
-    messageInput.addEventListener('input', function () {
+    // --- INITIALIZATION ---
+
+    // Auto-resize textarea on input
+    config.elements.messageInput.addEventListener('input', function () {
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        handleTyping();
     });
 
-    // Initialize SignalR connection
-    async function initializeChat() {
-        connection = new signalR.HubConnectionBuilder()
-            .withUrl("/chatHub")
-            .withAutomaticReconnect()
-            .configureLogging(signalR.LogLevel.Information)
-            .build();
+    // Scroll to bottom on page load
+    scrollToBottom(true);
 
-        // Receive messages (from other user)
-        connection.on("ReceiveMessage", function (data) {
-            console.log("Message received:", data);
-            if (data.senderId === chatUserId) {
+    // Initialize SignalR
+    async function initializeConnection() {
+        try {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("/chatHub")
+                .withAutomaticReconnect()
+                .build();
+
+            setupSignalREvents();
+
+            await connection.start();
+            isConnected = true;
+            console.log("SignalR Connected");
+
+            // Mark existing messages as read immediately on load
+            await connection.invoke("MarkAsRead", config.chatUserId);
+
+        } catch (err) {
+            console.error("SignalR Connection Error:", err);
+            setTimeout(initializeConnection, 5000); // Retry logic
+        }
+    }
+
+    // --- SIGNALR EVENTS ---
+
+    function setupSignalREvents() {
+        // 1. Receive Message (From other user)
+        connection.on("ReceiveMessage", (data) => {
+            if (data.senderId === config.chatUserId) {
                 appendMessage(data.message, false, data.sentAt, data.id);
                 scrollToBottom();
 
-                // Mark as read immediately
-                connection.invoke("MarkAsRead", chatUserId)
-                    .catch(err => console.error("Mark as read error:", err));
+                // Mark as read immediately since we are viewing the chat
+                connection.invoke("MarkAsRead", config.chatUserId).catch(console.error);
             }
         });
 
-        // Message sent confirmation from server (for messages we sent)
-        // Server should send { id, senderId, sentAt, message } or similar
-        connection.on("MessageSent", function (data) {
-            console.log("Message sent confirmation:", data);
+        // 2. Message Sent Confirmation (Update our temp message)
+        connection.on("MessageSent", (data) => {
+            if (data.senderId === config.currentUserId) {
+                finalizeSentMessage(data);
+            }
+        });
 
-            // If the confirmation is for the current user, match the client-temp element
-            if (data.senderId === currentUserId) {
-                // Match by temporary attribute and content (best-effort)
-                const messagesDiv = document.getElementById("chatMessages");
-                const tempEls = messagesDiv.querySelectorAll("[data-client-temp='true']");
-                // Prefer most recent
-                for (let i = tempEls.length - 1; i >= 0; i--) {
-                    const el = tempEls[i];
-                    const textEl = el.querySelector(".message-text");
-                    if (!textEl) continue;
+        // 3. Message Edited (Real-time update)
+        connection.on("MessageEdited", (messageId, newContent) => {
+            const el = document.querySelector(`[data-message-id='${messageId}']`);
+            if (el) {
+                const textEl = el.querySelector(".message-text");
+                if (textEl) textEl.textContent = newContent;
 
-                    // Try to match by text
-                    if (textEl.textContent.trim() === data.message.trim()) {
-                        el.setAttribute("data-message-id", data.id);
-                        el.removeAttribute("data-client-temp");
-                        // update timestamp and status
-                        const timeSpan = el.querySelector(".text-xs.text-gray-500");
-                        if (timeSpan) timeSpan.textContent = new Date(data.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        const status = el.querySelector(".message-status");
-                        if (status) status.setAttribute("data-status", "sent");
-                        break;
+                // Add "edited" label if not present
+                if (!el.querySelector(".edited-indicator")) {
+                    const meta = el.querySelector(".flex.items-center");
+                    if (meta) {
+                        const span = document.createElement("span");
+                        span.className = "edited-indicator text-xs text-gray-400 ml-2";
+                        span.textContent = "(edited)";
+                        meta.appendChild(span);
                     }
                 }
             }
         });
 
-        // Messages read - update all messages to "Seen"
-        connection.on("MessagesRead", function (userId) {
-            console.log("Messages read by:", userId);
-            if (userId === chatUserId) {
-                markAllAsSeen();
-            }
-        });
-
-        // Message edited by someone (server broadcasts)
-        connection.on("MessageEdited", function (data) {
-            // data: { id, message, editedAt }
-            const el = document.querySelector(`[data-message-id='${data.id}']`);
-            if (el) {
-                const textEl = el.querySelector(".message-text");
-                if (textEl) {
-                    textEl.textContent = data.message;
-                }
-                // show small 'edited' indicator (optional)
-                let editedEl = el.querySelector(".edited-indicator");
-                if (!editedEl) {
-                    editedEl = document.createElement("span");
-                    editedEl.className = "edited-indicator text-xs text-gray-400 ml-2";
-                    editedEl.textContent = "edited";
-                    const meta = el.querySelector(".flex.items-center");
-                    if (meta) meta.appendChild(editedEl);
-                }
-            }
-        });
-
-        // Message deleted by someone (server broadcasts)
-        connection.on("MessageDeleted", function (messageId) {
-            // Remove message element
+        // 4. Message Deleted (Real-time update)
+        connection.on("MessageDeleted", (messageId) => {
             const el = document.querySelector(`[data-message-id='${messageId}']`);
             if (el) {
-                el.remove();
+                el.style.transition = "opacity 0.3s";
+                el.style.opacity = "0";
+                setTimeout(() => el.remove(), 300);
             }
         });
 
-        // User typing indicator
-        connection.on("UserTyping", function (userId) {
-            if (userId === chatUserId) {
-                showTypingIndicator();
-            }
+        // 5. Status & Typing
+        connection.on("MessagesRead", (userId) => {
+            if (userId === config.chatUserId) markAllAsSeen();
         });
 
-        // Online/Offline status
-        connection.on("UserOnline", function (userId) {
-            if (userId === chatUserId) {
-                updateUserStatus(true);
-            }
+        connection.on("UserTyping", (userId) => {
+            if (userId === config.chatUserId) showTypingIndicator();
         });
 
-        connection.on("UserOffline", function (userId) {
-            if (userId === chatUserId) {
-                updateUserStatus(false);
-            }
+        connection.on("UserOnline", (userId) => {
+            if (userId === config.chatUserId) updateUserStatus(true);
         });
 
-        // Connection state handlers
-        connection.onreconnecting(error => {
-            console.warn("Connection lost, reconnecting...", error);
+        connection.on("UserOffline", (userId) => {
+            if (userId === config.chatUserId) updateUserStatus(false);
         });
-
-        connection.onreconnected(connectionId => {
-            console.log("Reconnected with ID:", connectionId);
-        });
-
-        connection.onclose(error => {
-            console.error("Connection closed:", error);
-            setTimeout(initializeChat, 5000);
-        });
-
-        try {
-            await connection.start();
-            console.log("SignalR Connected successfully!", connection.connectionId);
-
-            // Mark existing messages as read
-            await connection.invoke("MarkAsRead", chatUserId);
-        } catch (err) {
-            console.error("SignalR Connection Error:", err);
-            showNotification("Failed to connect to chat server. Please refresh the page.", "error");
-            setTimeout(initializeChat, 5000);
-        }
     }
 
-    // Send message
-    document.getElementById("sendButton").addEventListener("click", sendMessage);
-    messageInput.addEventListener("keypress", function (e) {
+    // --- SEND MESSAGE LOGIC ---
+
+    config.elements.sendButton.addEventListener("click", sendMessage);
+    config.elements.messageInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             sendMessage();
@@ -161,319 +131,305 @@
     });
 
     async function sendMessage() {
-        const message = messageInput.value.trim();
+        const text = config.elements.messageInput.value.trim();
+        if (!text) return;
 
-        if (message === "") return;
-
-        // Check connection state
-        if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
-            showNotification("Not connected to chat server. Reconnecting...", "warning");
-            await initializeChat();
+        if (!isConnected) {
+            alert("Connection lost. Reconnecting...");
+            await initializeConnection();
             return;
         }
 
         try {
-            console.log("Sending message:", { chatUserId, message });
-            await connection.invoke("SendMessage", chatUserId, message);
-            console.log("Message sent successfully");
+            // 1. Optimistic UI: Show message immediately
+            const tempId = "temp-" + Date.now();
+            appendMessage(text, true, new Date().toISOString(), tempId, false, true);
 
-            // Append client-temp message (will be patched when server confirms)
-            appendMessage(message, true, new Date().toISOString(), null, false, true);
-            messageInput.value = "";
-            messageInput.style.height = 'auto';
+            // 2. Reset Input
+            config.elements.messageInput.value = "";
+            config.elements.messageInput.style.height = 'auto';
             scrollToBottom();
+
+            // 3. Send to Server
+            await connection.invoke("SendMessage", config.chatUserId, text);
+
         } catch (err) {
-            console.error("Send Error Details:", err);
-            showNotification("Failed to send message. Please try again.", "error");
+            console.error("Send failed:", err);
+            // Optionally remove the temp message or show error icon
         }
     }
 
-    // Typing indicator
-    messageInput.addEventListener("input", function () {
-        clearTimeout(typingTimeout);
+    function finalizeSentMessage(data) {
+        // Find the temporary message by matching content and temp attribute
+        const tempEls = config.elements.messagesContainer.querySelectorAll("[data-client-temp='true']");
 
-        if (connection && connection.state === signalR.HubConnectionState.Connected) {
-            connection.invoke("UserTyping", chatUserId)
-                .catch(err => console.error("Typing indicator error:", err));
-        }
+        for (let i = tempEls.length - 1; i >= 0; i--) {
+            const el = tempEls[i];
+            const textEl = el.querySelector(".message-text");
 
-        typingTimeout = setTimeout(() => {
-            // Stop typing indicator after 3 seconds
-        }, 3000);
-    });
+            // Match content (simple heuristic)
+            if (textEl && textEl.textContent === data.message) {
+                el.setAttribute("data-message-id", data.id);
+                el.removeAttribute("data-client-temp");
 
-    // Helper functions
-    function appendMessage(text, isSent, timestamp, messageId, isRead = false, isTemp = false) {
-        const messagesDiv = document.getElementById("chatMessages");
-        const messageDiv = document.createElement("div");
-        messageDiv.className = `flex ${isSent ? "justify-end" : "justify-start"} animate-fadeIn`;
-        if (messageId) messageDiv.setAttribute("data-message-id", messageId);
-        if (isTemp) {
-            messageDiv.setAttribute("data-client-temp", "true");
-        }
+                // **FIX: Update the data-message-id on the buttons too**
+                const editBtn = el.querySelector(".edit-message-btn");
+                const deleteBtn = el.querySelector(".delete-message-btn");
+                const optionsBtn = el.querySelector(".message-options-btn");
 
-        const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (editBtn) editBtn.setAttribute("data-message-id", data.id);
+                if (deleteBtn) deleteBtn.setAttribute("data-message-id", data.id);
+                if (optionsBtn) optionsBtn.setAttribute("data-message-id", data.id);
 
-        let statusIcon = '';
-        if (isSent) {
-            if (isRead) {
-                // Double checkmark for seen
-                statusIcon = `
-                <span class="message-status" data-status="seen">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 13l4 4L23 7"/>
-                    </svg>
-                </span>
-            `;
-            } else {
-                // Single checkmark for sent
-                statusIcon = `
-                <span class="message-status" data-status="sent">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </span>
-            `;
+                // Update timestamp
+                const timeSpan = el.querySelector(".text-xs.text-gray-500");
+                if (timeSpan) timeSpan.textContent = new Date(data.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                // Update Status Icon
+                const status = el.querySelector(".message-status");
+                if (status) status.innerHTML = getStatusIconHtml('sent');
+
+                break;
             }
         }
-
-        if (isSent) {
-            // Options and action menu present only for own messages
-            messageDiv.innerHTML = `
-            <div class="max-w-[70%] group relative">
-                <div class="bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-md hover:shadow-lg transition-shadow">
-                    <p class="text-sm leading-relaxed break-words message-text">${escapeHtml(text)}</p>
-                </div>
-
-                <button type="button"
-                        class="message-options-btn absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white/90 text-gray-600 flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                        ${messageId ? `data-message-id="${messageId}"` : ''}
-                        aria-haspopup="true"
-                        aria-expanded="false"
-                        title="Message options">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v.01M12 12v.01M12 18v.01" />
-                    </svg>
-                </button>
-
-                <div class="message-actions hidden absolute top-full right-0 mt-2 w-36 bg-white rounded-lg shadow-lg border border-gray-100 z-20">
-                    <button type="button" class="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm edit-message-btn" ${messageId ? `data-message-id="${messageId}"` : ''}>Edit</button>
-                    <button type="button" class="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-red-600 delete-message-btn" ${messageId ? `data-message-id="${messageId}"` : ''}>Delete</button>
-                </div>
-
-                <div class="flex items-center justify-end gap-1.5 mt-1 px-2">
-                    <span class="text-xs text-gray-500">${time}</span>
-                    ${statusIcon}
-                </div>
-            </div>
-        `;
-        } else {
-            messageDiv.innerHTML = `
-            <div class="max-w-[70%] group">
-                <div class="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm hover:shadow-md transition-shadow">
-                    <p class="text-sm text-gray-800 leading-relaxed break-words message-text">${escapeHtml(text)}</p>
-                </div>
-                <div class="flex items-center gap-1.5 mt-1 px-2">
-                    <span class="text-xs text-gray-500">${time}</span>
-                </div>
-            </div>
-        `;
-        }
-
-        messagesDiv.appendChild(messageDiv);
     }
 
-    // Event delegation for message options, edit and delete
-    document.getElementById('chatMessages').addEventListener('click', function (e) {
+    // --- UI INTERACTION (Edit/Delete/Menu) ---
+
+    config.elements.messagesContainer.addEventListener('click', function (e) {
+
+        // 1. Toggle "Three Dots" Menu
         const optionsBtn = e.target.closest('.message-options-btn');
         if (optionsBtn) {
-            const container = optionsBtn.closest('.group') || optionsBtn.closest('[data-message-id]');
+            e.stopPropagation();
+            const container = optionsBtn.closest('.group');
             const menu = container.querySelector('.message-actions');
-            if (menu) {
-                const expanded = optionsBtn.getAttribute('aria-expanded') === 'true';
-                // close other open menus
-                document.querySelectorAll('.message-actions').forEach(m => {
-                    if (m !== menu) m.classList.add('hidden');
-                });
-                const buttons = document.querySelectorAll('.message-options-btn');
-                buttons.forEach(b => b.setAttribute('aria-expanded', 'false'));
 
-                if (expanded) {
-                    menu.classList.add('hidden');
-                    optionsBtn.setAttribute('aria-expanded', 'false');
-                } else {
-                    menu.classList.remove('hidden');
-                    optionsBtn.setAttribute('aria-expanded', 'true');
-                }
-            }
+            // Close all other menus
+            document.querySelectorAll('.message-actions').forEach(m => {
+                if (m !== menu) m.classList.add('hidden');
+            });
+
+            // Toggle current
+            menu.classList.toggle('hidden');
             return;
         }
 
-        // Edit button clicked
+        // 2. Edit Button
         const editBtn = e.target.closest('.edit-message-btn');
         if (editBtn) {
-            const messageId = editBtn.getAttribute('data-message-id') || editBtn.closest('[data-message-id]')?.getAttribute('data-message-id');
-            const messageEl = editBtn.closest('[data-message-id]') || editBtn.closest('.group');
-            startInlineEdit(messageEl, messageId);
-            return;
-        }
+            const container = editBtn.closest('.group');
+            const id = editBtn.getAttribute('data-message-id');
 
-        // Delete button clicked
-        const deleteBtn = e.target.closest('.delete-message-btn');
-        if (deleteBtn) {
-            const messageId = deleteBtn.getAttribute('data-message-id') || deleteBtn.closest('[data-message-id]')?.getAttribute('data-message-id');
-            const messageEl = deleteBtn.closest('[data-message-id]') || deleteBtn.closest('.group');
-            confirmDeleteMessage(messageEl, messageId);
-            return;
-        }
-
-        // Clicking outside menus -> close any open
-        if (!e.target.closest('.message-actions') && !e.target.closest('.message-options-btn')) {
-            document.querySelectorAll('.message-actions').forEach(m => m.classList.add('hidden'));
-            document.querySelectorAll('.message-options-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
-        }
-    });
-
-    function startInlineEdit(messageContainer, messageId) {
-        if (!messageContainer || !messageId) return;
-        const textEl = messageContainer.querySelector('.message-text');
-        if (!textEl) return;
-
-        // Prevent opening multiple editors
-        if (messageContainer.classList.contains('message-editing')) return;
-
-        const originalText = textEl.textContent.trim();
-        messageContainer.classList.add('message-editing');
-
-        // Replace with textarea
-        const textarea = document.createElement('textarea');
-        textarea.className = 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm resize-none message-edit-textarea';
-        textarea.value = originalText;
-        textarea.rows = 3;
-        textarea.style.minHeight = '56px';
-        textarea.style.maxHeight = '120px';
-
-        // action row
-        const actionRow = document.createElement('div');
-        actionRow.className = 'mt-2 flex justify-end gap-2';
-
-        const saveBtn = document.createElement('button');
-        saveBtn.className = 'inline-flex items-center justify-center rounded-md bg-black px-3 py-1 text-sm font-semibold text-white hover:bg-gray-800';
-        saveBtn.textContent = 'Save';
-
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-50';
-        cancelBtn.textContent = 'Cancel';
-
-        actionRow.appendChild(cancelBtn);
-        actionRow.appendChild(saveBtn);
-
-        // hide original paragraph and insert editor
-        textEl.style.display = 'none';
-        const bubble = messageContainer.querySelector('div > .message-text')?.parentElement || textEl.parentElement;
-        bubble.appendChild(textarea);
-        bubble.appendChild(actionRow);
-
-        // Cancel handler
-        cancelBtn.addEventListener('click', function () {
-            textarea.remove();
-            actionRow.remove();
-            textEl.style.display = '';
-            messageContainer.classList.remove('message-editing');
-        });
-
-        // Save handler
-        saveBtn.addEventListener('click', async function () {
-            const newText = textarea.value.trim();
-            if (newText === '') {
-                showNotification("Message cannot be empty", "warning");
+            // Skip if temp message
+            if (id && id.startsWith('temp-')) {
+                console.log('Cannot edit message that is still being sent');
                 return;
             }
 
-            // invoke server edit
-            try {
-                await connection.invoke("EditMessage", messageId, newText);
-                // optimistic update (server will broadcast MessageEdited too)
-                textEl.textContent = newText;
-                textarea.remove();
-                actionRow.remove();
-                textEl.style.display = '';
-                messageContainer.classList.remove('message-editing');
-            } catch (err) {
-                console.error("Edit failed:", err);
-                showNotification("Failed to edit message", "error");
+            // Hide menu
+            editBtn.closest('.message-actions').classList.add('hidden');
+            startInlineEdit(container, id);
+            return;
+        }
+
+        // 3. Delete Button
+        const deleteBtn = e.target.closest('.delete-message-btn');
+        if (deleteBtn) {
+            const id = deleteBtn.getAttribute('data-message-id');
+
+            // Skip if temp message
+            if (id && id.startsWith('temp-')) {
+                console.log('Cannot delete message that is still being sent');
+                return;
+            }
+
+            // Hide menu
+            deleteBtn.closest('.message-actions').classList.add('hidden');
+            if (confirm("Delete this message?")) {
+                connection.invoke("DeleteMessage", parseInt(id)).catch(console.error);
+            }
+            return;
+        }
+
+        // 4. Click outside to close menus
+        if (!e.target.closest('.message-actions')) {
+            document.querySelectorAll('.message-actions').forEach(m => m.classList.add('hidden'));
+        }
+    });
+
+    // Close menus when clicking anywhere else on document
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.message-options-btn') && !e.target.closest('.message-actions')) {
+            document.querySelectorAll('.message-actions').forEach(m => m.classList.add('hidden'));
+        }
+    });
+
+    // --- INLINE EDITING LOGIC ---
+
+    function startInlineEdit(container, messageId) {
+        if (container.classList.contains('message-editing')) return;
+
+        const textEl = container.querySelector('.message-text');
+        const currentText = textEl.textContent;
+        const bubble = textEl.parentElement;
+
+        container.classList.add('message-editing');
+        textEl.style.display = 'none';
+
+        // Create Textarea
+        const textarea = document.createElement('textarea');
+        textarea.className = 'w-full rounded bg-blue-800 text-white placeholder-blue-300 border-none px-2 py-1 text-sm resize-none focus:ring-2 focus:ring-white/50';
+        textarea.value = currentText;
+        textarea.rows = 2;
+
+        // Action Buttons
+        const btnRow = document.createElement('div');
+        btnRow.className = 'flex justify-end gap-2 mt-2';
+        btnRow.innerHTML = `
+            <button class="cancel-edit text-xs text-blue-200 hover:text-white font-medium">Cancel</button>
+            <button class="save-edit px-3 py-1 bg-white text-blue-700 text-xs font-bold rounded hover:bg-gray-100">Save</button>
+        `;
+
+        bubble.appendChild(textarea);
+        bubble.appendChild(btnRow);
+        textarea.focus();
+
+        // Handlers
+        const cancel = () => {
+            textarea.remove();
+            btnRow.remove();
+            textEl.style.display = 'block';
+            container.classList.remove('message-editing');
+        };
+
+        btnRow.querySelector('.cancel-edit').addEventListener('click', cancel);
+
+        btnRow.querySelector('.save-edit').addEventListener('click', async () => {
+            const newText = textarea.value.trim();
+            if (newText && newText !== currentText) {
+                try {
+                    await connection.invoke("EditMessage", parseInt(messageId), newText);
+                    // Optimistic update
+                    textEl.textContent = newText;
+                    cancel();
+                } catch (err) {
+                    alert("Failed to edit message");
+                }
+            } else {
+                cancel();
             }
         });
     }
 
-    function confirmDeleteMessage(messageContainer, messageId) {
-        if (!messageContainer || !messageId) return;
-        if (!confirm("Delete this message? This action cannot be undone.")) return;
+    // --- HELPER FUNCTIONS ---
 
-        // invoke server delete
-        connection.invoke("DeleteMessage", messageId)
-            .then(() => {
-                // optimistic remove (server will broadcast MessageDeleted too)
-                messageContainer.remove();
-            })
-            .catch(err => {
-                console.error("Delete failed:", err);
-                showNotification("Failed to delete message", "error");
-            });
-    }
+    function handleTyping() {
+        if (!isConnected) return;
 
-    function scrollToBottom() {
-        const messagesDiv = document.getElementById("chatMessages");
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
+        // Clear existing timeout
+        if (typingTimeout) clearTimeout(typingTimeout);
 
-    function showTypingIndicator() {
-        const indicator = document.getElementById("typingIndicator");
-        indicator.classList.remove("hidden");
+        // Only send "I am typing" if we haven't sent it recently (simple throttling)
+        if (!config.elements.messageInput.getAttribute('data-typing')) {
+            connection.invoke("UserTyping", config.chatUserId).catch(console.error);
+            config.elements.messageInput.setAttribute('data-typing', 'true');
+        }
 
-        setTimeout(() => {
-            indicator.classList.add("hidden");
+        // Reset after 3 seconds of inactivity
+        typingTimeout = setTimeout(() => {
+            config.elements.messageInput.removeAttribute('data-typing');
         }, 3000);
     }
 
+    function showTypingIndicator() {
+        config.elements.typingIndicator.classList.remove("hidden");
+        // Hide automatically after 3.5s just in case offline event is missed
+        setTimeout(() => config.elements.typingIndicator.classList.add("hidden"), 3500);
+    }
+
     function updateUserStatus(isOnline) {
-        const statusIndicator = document.getElementById("userStatus");
-        if (isOnline) {
-            statusIndicator.className = "absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full";
+        config.elements.userStatus.className = isOnline
+            ? "absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"
+            : "absolute bottom-0 right-0 w-3.5 h-3.5 bg-gray-400 border-2 border-white rounded-full";
+    }
+
+    function appendMessage(text, isSent, timestamp, messageId, isRead, isTemp) {
+        const div = document.createElement("div");
+        div.className = `flex ${isSent ? "justify-end" : "justify-start"} animate-fadeIn mb-4`;
+        if (messageId) div.setAttribute("data-message-id", messageId);
+        if (isTemp) div.setAttribute("data-client-temp", "true");
+
+        const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        if (isSent) {
+            // Sent Message Bubble
+            div.innerHTML = `
+                <div class="max-w-[70%] group relative">
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-md">
+                        <p class="text-sm leading-relaxed break-words message-text">${escapeHtml(text)}</p>
+                    </div>
+                    
+                    <button type="button" class="message-options-btn absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white text-gray-600 flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10" data-message-id="${messageId}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v.01M12 12v.01M12 18v.01" /></svg>
+                    </button>
+                    
+                    <div class="message-actions hidden absolute top-full right-0 mt-1 w-32 bg-white rounded-lg shadow-xl border border-gray-100 z-20 overflow-hidden">
+                        <button class="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm text-gray-700 edit-message-btn" data-message-id="${messageId}">Edit</button>
+                        <button class="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm text-red-600 delete-message-btn" data-message-id="${messageId}">Delete</button>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-1.5 mt-1 px-2">
+                        <span class="text-xs text-gray-500">${time}</span>
+                        <span class="message-status">${getStatusIconHtml(isRead ? 'seen' : 'sent')}</span>
+                    </div>
+                </div>`;
         } else {
-            statusIndicator.className = "absolute bottom-0 right-0 w-3 h-3 bg-gray-400 border-2 border-white rounded-full";
+            // Received Message Bubble
+            div.innerHTML = `
+                <div class="max-w-[70%]">
+                    <div class="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm">
+                        <p class="text-sm text-gray-800 leading-relaxed break-words message-text">${escapeHtml(text)}</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1 px-2">
+                        <span class="text-xs text-gray-500">${time}</span>
+                    </div>
+                </div>`;
         }
+
+        config.elements.messagesContainer.appendChild(div);
     }
 
     function markAllAsSeen() {
-        // Update all sent messages to "Seen"
-        document.querySelectorAll(".message-status[data-status='sent']").forEach(statusSpan => {
-            statusSpan.setAttribute("data-status", "seen");
-            statusSpan.innerHTML = `
-            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 13l4 4L23 7"/>
-            </svg>
-        `;
+        document.querySelectorAll(".message-status").forEach(el => {
+            el.innerHTML = getStatusIconHtml('seen');
         });
     }
 
-    function showNotification(message, type = "info") {
-        // Simple notification using browser alert
-        console.log(`[${type.toUpperCase()}] ${message}`);
-        if (type === "error") {
-            alert(message);
+    function getStatusIconHtml(status) {
+        if (status === 'seen') {
+            return `<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 13l4 4L23 7"/></svg>`;
         }
+        return `<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>`;
     }
 
     function escapeHtml(text) {
-        const div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
+        if (!text) return "";
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    // Initialize on page load
-    initializeChat();
-    scrollToBottom();
+    function scrollToBottom(immediate = false) {
+        if (immediate) {
+            // Immediate scroll (for page load)
+            config.elements.messagesContainer.scrollTop = config.elements.messagesContainer.scrollHeight;
+        } else {
+            // Delayed scroll (for new messages with animation)
+            setTimeout(() => {
+                config.elements.messagesContainer.scrollTop = config.elements.messagesContainer.scrollHeight;
+            }, 350); // Wait for fadeIn animation (300ms) + small buffer
+        }
+    }
+
+    // Start
+    initializeConnection();
 })();

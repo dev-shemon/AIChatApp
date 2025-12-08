@@ -68,6 +68,29 @@ public class MessageRepository : IMessageRepository
         return conversation;
     }
 
+    public async Task<ChatMessage?> GetMessageByIdAsync(int messageId)
+    {
+        return await _context.ChatMessages
+            .Include(m => m.Sender) // Include sender to map DTOs later if needed
+            .FirstOrDefaultAsync(m => m.Id == messageId);
+    }
+
+    public async Task UpdateMessageAsync(ChatMessage message)
+    {
+        _context.ChatMessages.Update(message);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteMessageAsync(ChatMessage message)
+    {
+        _context.ChatMessages.Remove(message);
+        await _context.SaveChangesAsync();
+
+        // Note: If this message was the "LastMessage" in a Conversation, 
+        // you might want to update the conversation logic here, 
+        // but for now, we will keep it simple as per instructions.
+    }
+
     public async Task MarkMessagesAsReadAsync(Guid senderId, Guid receiverId)
     {
         var unreadMessages = await _context.ChatMessages

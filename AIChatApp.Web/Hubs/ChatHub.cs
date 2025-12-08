@@ -86,6 +86,56 @@ public class ChatHub : Hub
         }
     }
 
+    // ... inside ChatHub class ...
+
+    public async Task EditMessage(int messageId, string newContent)
+    {
+        try
+        {
+            var senderIdClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(senderIdClaim)) return;
+            var senderId = Guid.Parse(senderIdClaim);
+
+            // 1. Call Service to persist change
+            var updatedMessage = await _chatService.EditMessageAsync(senderId, messageId, newContent);
+
+            // 2. Notify Receiver (Real-time update)
+            await Clients.User(updatedMessage.ReceiverId.ToString())
+                .SendAsync("MessageEdited", messageId, newContent);
+
+            // 3. Notify Sender (Update their own UI)
+            await Clients.Caller.SendAsync("MessageEdited", messageId, newContent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error editing message");
+            // Optionally send error to caller
+        }
+    }
+
+    public async Task DeleteMessage(int messageId)
+    {
+        try
+        {
+            var senderIdClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(senderIdClaim)) return;
+            var senderId = Guid.Parse(senderIdClaim);
+
+            // 1. Call Service to delete
+            var receiverId = await _chatService.DeleteMessageAsync(senderId, messageId);
+
+            // 2. Notify Receiver
+            await Clients.User(receiverId.ToString()).SendAsync("MessageDeleted", messageId);
+
+            // 3. Notify Sender
+            await Clients.Caller.SendAsync("MessageDeleted", messageId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting message");
+        }
+    }
+
     public async Task MarkAsRead(string senderId)
     {
         try

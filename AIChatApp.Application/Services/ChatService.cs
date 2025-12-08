@@ -91,6 +91,56 @@ public class ChatService : IChatService
         }).ToList();
     }
 
+    // ... inside ChatService class ...
+
+    public async Task<MessageDto> EditMessageAsync(Guid currentUserId, int messageId, string newContent)
+    {
+        var message = await _messageRepository.GetMessageByIdAsync(messageId);
+
+        if (message == null)
+            throw new Exception("Message not found");
+
+        // Authorization Check: Only sender can edit
+        if (message.SenderId != currentUserId)
+            throw new UnauthorizedAccessException("You can only edit your own messages.");
+
+        message.MessageContent = newContent;
+        // Optional: Add an 'IsEdited' flag or 'EditedAt' timestamp to your Domain entity if you want to show "(edited)" in UI
+
+        await _messageRepository.UpdateMessageAsync(message);
+
+        // Return DTO to update UI
+        return new MessageDto
+        {
+            Id = message.Id,
+            SenderId = message.SenderId,
+            SenderName = message.Sender?.UserName,
+            ReceiverId = message.ReceiverId,
+            MessageContent = message.MessageContent,
+            SentAt = message.SentAt,
+            IsRead = message.IsRead,
+            IsSentByCurrentUser = true
+        };
+    }
+
+    public async Task<Guid> DeleteMessageAsync(Guid currentUserId, int messageId)
+    {
+        var message = await _messageRepository.GetMessageByIdAsync(messageId);
+
+        if (message == null)
+            throw new Exception("Message not found");
+
+        // Authorization Check
+        if (message.SenderId != currentUserId)
+            throw new UnauthorizedAccessException("You can only delete your own messages.");
+
+        var receiverId = message.ReceiverId; // Capture this before deleting
+
+        await _messageRepository.DeleteMessageAsync(message);
+
+        return receiverId; // Return receiver ID so SignalR can notify them
+    }
+
     public async Task MarkMessagesAsReadAsync(Guid senderId, Guid receiverId)
     {
         await _messageRepository.MarkMessagesAsReadAsync(senderId, receiverId);
