@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @RenderSection("Styles", required: false)
     @RenderSection("HeadMeta", required: false)
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -25,46 +25,58 @@
 
     <nav class="w-full bg-white border-b border-gray-100 fixed top-0 left-0 z-50 transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-
+            <div class="flex items-center justify-between h-20">
                 <div class="flex-shrink-0 flex items-center gap-2">
                     <a asp-controller="Home" asp-action="Index" class="group flex items-center gap-2">
                         <svg class="h-8 w-8 text-black group-hover:scale-110 transition-transform duration-300" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 6C13.66 6 15 7.34 15 9C15 10.66 13.66 12 12 12C10.34 12 9 10.66 9 9C9 7.34 10.34 6 12 6ZM12 18C9.33 18 7 16.66 6 14.7C6.03 12.71 10 11.61 12 11.61C14 11.61 17.97 12.71 18 14.7C17 16.66 14.67 18 12 18Z" />
                         </svg>
-                        <span class="text-xl font-bold tracking-tight text-gray-900">AIChatApp</span>
+                        <span class="text-xl font-bold tracking-tight text-black">AIChatApp</span>
                     </a>
                 </div>
 
                 <div class="hidden md:flex items-center space-x-8">
                     @if (User?.Identity?.IsAuthenticated ?? false)
                     {
-                        <a asp-controller="Home" asp-action="Index" class="text-sm font-medium text-gray-500 hover:text-black hover:underline underline-offset-4 transition-all duration-200">Home</a>
-                        <a href="/Chats" class="text-sm font-medium text-gray-500 hover:text-black hover:underline underline-offset-4 transition-all duration-200">Chats</a>
-                        <a asp-controller="UserList" asp-action="UsersList" class="text-sm font-medium text-gray-500 hover:text-black hover:underline underline-offset-4 transition-all duration-200">Find Users</a>
-                        <a asp-controller="Home" asp-action="Privacy" class="text-sm font-medium text-gray-500 hover:text-black hover:underline underline-offset-4 transition-all duration-200">Privacy</a>
-                        <a asp-controller="Profile" asp-action="ProfileDetails" class="text-sm font-medium text-gray-500 hover:text-black hover:underline underline-offset-4 transition-all duration-200">Profile</a>
+                        <a asp-controller="Home" asp-action="Index" class="text-sm font-bold text-gray-500 hover:text-black hover:underline underline-offset-8 decoration-2 transition-all duration-200">Home</a>
+                        <a href="/Chats" class="text-sm font-bold text-gray-500 hover:text-black hover:underline underline-offset-8 decoration-2 transition-all duration-200">Chats</a>
+                        <a asp-controller="UserList" asp-action="UsersList" class="text-sm font-bold text-gray-500 hover:text-black hover:underline underline-offset-8 decoration-2 transition-all duration-200">Find Users</a>
+                        <a asp-controller="Home" asp-action="Privacy" class="text-sm font-bold text-gray-500 hover:text-black hover:underline underline-offset-8 decoration-2 transition-all duration-200">Privacy</a>
                     }
                     else
                     {
-                        <a asp-controller="Home" asp-action="Index" class="text-sm font-medium text-gray-500 hover:text-black hover:underline underline-offset-4 transition-all duration-200">Home</a>
-                        <a asp-controller="Home" asp-action="Privacy" class="text-sm font-medium text-gray-500 hover:text-black hover:underline underline-offset-4 transition-all duration-200">Privacy</a>
+                        <a asp-controller="Home" asp-action="Index" class="text-sm font-bold text-gray-500 hover:text-black hover:underline underline-offset-8 decoration-2 transition-all duration-200">Home</a>
+                        <a asp-controller="Home" asp-action="Privacy" class="text-sm font-bold text-gray-500 hover:text-black hover:underline underline-offset-8 decoration-2 transition-all duration-200">Privacy</a>
                     }
                 </div>
 
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-6">
                     @if (User?.Identity?.IsAuthenticated ?? false)
                     {
-                        <form asp-controller="Auth" asp-action="Logout" method="post" id="logoutForm">
-                            @Html.AntiForgeryToken()
-                            <button type="button" onclick="confirmLogout(event)" class="text-sm font-medium text-gray-500 hover:text-red-600 transition-colors">Log out</button>
-                        </form>
+                        <div class="flex items-center gap-4">
+                            <a asp-controller="Profile" asp-action="ProfileDetails" class="group relative p-1" title="My Profile">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7 text-gray-500 group-hover:text-black transition-colors duration-200">
+                                    <path fill-rule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" clip-rule="evenodd" />
+                                </svg>
+                            </a>
+
+                            <div class="h-6 w-px bg-gray-200"></div>
+
+                            <form asp-controller="Auth" asp-action="Logout" method="post" id="logoutForm" class="flex items-center">
+                                @Html.AntiForgeryToken()
+                                <button type="button" onclick="confirmLogout(event)" class="group p-1" title="Log out">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7 text-red-500 group-hover:text-red-700 transition-colors duration-200">
+                                        <path fill-rule="evenodd" d="M7.5 3.75A1.5 1.5 0 006 5.25v13.5a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5V15a.75.75 0 011.5 0v3.75a3 3 0 01-3 3h-6a3 3 0 01-3-3V5.25a3 3 0 013-3h6a3 3 0 013 3V9A.75.75 0 0115 9V5.25a1.5 1.5 0 00-1.5-1.5h-6zm10.72 4.72a.75.75 0 011.06 0l3 3a.75.75 0 010 1.06l-3 3a.75.75 0 11-1.06-1.06l1.72-1.72H9a.75.75 0 010-1.5h10.94l-1.72-1.72a.75.75 0 010-1.06z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
                     }
                     else
                     {
-                        <div class="flex items-center gap-3">
-                            <a asp-controller="Auth" asp-action="Login" class="text-sm font-medium text-gray-500 hover:text-black transition-colors">Log in</a>
-                            <a asp-controller="Auth" asp-action="Register" class="text-sm font-medium bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors shadow-sm">Sign Up</a>
+                        <div class="flex items-center gap-4">
+                            <a asp-controller="Auth" asp-action="Login" class="text-sm font-bold text-gray-500 hover:text-black transition-colors">Log in</a>
+                            <a asp-controller="Auth" asp-action="Register" class="text-sm font-bold bg-black text-white px-5 py-2.5 rounded-md hover:bg-gray-800 transition-colors shadow-sm">Sign Up</a>
                         </div>
                     }
                 </div>
@@ -72,7 +84,7 @@
         </div>
     </nav>
 
-    <main class="pt-20 flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+    <main class="pt-24 flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         @RenderBody()
     </main>
 
