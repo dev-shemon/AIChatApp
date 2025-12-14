@@ -9,11 +9,13 @@ public class ChatService : IChatService
 {
     private readonly IMessageRepository _messageRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IFileStorageService _fileStorageService;
 
-    public ChatService(IMessageRepository messageRepository, IUserRepository userRepository)
+    public ChatService(IMessageRepository messageRepository, IUserRepository userRepository, IFileStorageService fileStorageService)
     {
         _messageRepository = messageRepository;
         _userRepository = userRepository;
+        _fileStorageService = fileStorageService;
     }
 
     public async Task<ChatDto> GetChatAsync(Guid currentUserId, Guid chatUserId)
@@ -55,8 +57,23 @@ public class ChatService : IChatService
             SenderId = senderId,
             ReceiverId = dto.ReceiverId,
             MessageContent = dto.MessageContent,
-            IsRead = false
+            IsRead = false,
+            SentAt = DateTime.UtcNow // Ensure time is set
         };
+
+        // Handle File Upload
+        if (dto.File != null && dto.File.Length > 0)
+        {
+            // Simple content type check
+            string fileType = dto.File.ContentType.StartsWith("image") ? "image" : "file";
+
+            // Upload
+            string fileUrl = await _fileStorageService.UploadFileAsync(dto.File.OpenReadStream(), dto.File.FileName, dto.File.ContentType);
+
+            message.AttachmentUrl = fileUrl;
+            message.AttachmentType = fileType;
+            message.OriginalFileName = dto.File.FileName;
+        }
 
         var savedMessage = await _messageRepository.AddMessageAsync(message);
         var sender = await _userRepository.GetByIdAsync(senderId);
@@ -68,6 +85,9 @@ public class ChatService : IChatService
             SenderName = sender?.UserName,
             ReceiverId = dto.ReceiverId,
             MessageContent = savedMessage.MessageContent,
+            AttachmentUrl = savedMessage.AttachmentUrl,      // Map new props
+            AttachmentType = savedMessage.AttachmentType,    // Map new props
+            OriginalFileName = savedMessage.OriginalFileName,// Map new props
             SentAt = savedMessage.SentAt,
             IsRead = false,
             IsSentByCurrentUser = true

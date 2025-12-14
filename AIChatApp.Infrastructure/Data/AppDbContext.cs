@@ -33,6 +33,11 @@ public class AppDbContext : DbContext
             entity.Property(e => e.MessageContent).IsRequired().HasMaxLength(2000);
             entity.Property(e => e.SentAt).IsRequired();
 
+            entity.Property(e => e.MessageContent).IsRequired(false).HasMaxLength(2000);
+
+            entity.Property(e => e.AttachmentUrl).HasMaxLength(500);
+            entity.Property(e => e.AttachmentType).HasMaxLength(50);
+
             entity.HasOne(e => e.Sender)
                 .WithMany()
                 .HasForeignKey(e => e.SenderId)

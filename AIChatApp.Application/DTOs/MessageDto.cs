@@ -7,6 +7,9 @@ public class MessageDto
     public string SenderName { get; set; }
     public Guid ReceiverId { get; set; }
     public string MessageContent { get; set; }
+    public string AttachmentUrl { get; set; }
+    public string AttachmentType { get; set; }
+    public string OriginalFileName { get; set; }
     public DateTime SentAt { get; set; }
     public bool IsRead { get; set; }
     public bool IsSentByCurrentUser { get; set; }

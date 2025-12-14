@@ -22,9 +22,31 @@ public class MessageRepository : IMessageRepository
 
         // Update conversation
         var conversation = await GetOrCreateConversationAsync(message.SenderId, message.ReceiverId);
-        conversation.LastMessage = message.MessageContent.Length > 50
-            ? message.MessageContent.Substring(0, 50) + "..."
-            : message.MessageContent;
+
+        // --- FIX START: Handle Null MessageContent ---
+        string previewText;
+
+        if (!string.IsNullOrEmpty(message.MessageContent))
+        {
+            // If text exists, use it (truncated)
+            previewText = message.MessageContent.Length > 50
+                ? message.MessageContent.Substring(0, 50) + "..."
+                : message.MessageContent;
+        }
+        else if (!string.IsNullOrEmpty(message.AttachmentUrl))
+        {
+            // If no text but has attachment, show generic text
+            previewText = message.AttachmentType == "image" ? "📷 Sent a photo" : "📎 Sent a file";
+        }
+        else
+        {
+            // Fallback
+            previewText = "New message";
+        }
+
+        conversation.LastMessage = previewText;
+        // --- FIX END ---
+
         conversation.LastMessageAt = message.SentAt;
         await _context.SaveChangesAsync();
 
