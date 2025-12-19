@@ -62,6 +62,7 @@
                 .withAutomaticReconnect()
                 .build();
 
+            window.signalRConnection = connection;
             setupSignalREvents();
 
             await connection.start();

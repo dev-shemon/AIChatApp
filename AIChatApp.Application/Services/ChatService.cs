@@ -34,8 +34,8 @@ public class ChatService : IChatService
             CurrentUserId = currentUserId,
             ChatUserId = chatUserId,
             ChatUserName = chatUser.UserName,
-            ChatUserFullName = chatUser.FullName, // ADD THIS
-            ChatUserProfileImage = chatUser.ProfileImageUrl, // ADD THIS
+            ChatUserFullName = chatUser.FullName,
+            ChatUserProfileImage = chatUser.ProfileImageUrl,
             Messages = messages.Select(m => new MessageDto
             {
                 Id = m.Id,
@@ -45,7 +45,12 @@ public class ChatService : IChatService
                 MessageContent = m.MessageContent,
                 SentAt = m.SentAt,
                 IsRead = m.IsRead,
-                IsSentByCurrentUser = m.SenderId == currentUserId
+                IsSentByCurrentUser = m.SenderId == currentUserId,
+
+                // ✅ ADDED: Map Attachment details so they load in the history
+                AttachmentUrl = m.AttachmentUrl,
+                AttachmentType = m.AttachmentType,
+                OriginalFileName = m.OriginalFileName
             }).ToList()
         };
     }
@@ -58,28 +63,30 @@ public class ChatService : IChatService
             ReceiverId = dto.ReceiverId,
             MessageContent = dto.MessageContent,
             IsRead = false,
-            SentAt = DateTime.UtcNow // Ensure time is set
+            SentAt = DateTime.UtcNow
         };
 
-        // ... inside SendMessageAsync method ...
-
-        // Handle File Upload
+        // ✅ UPDATED: Cloudinary File Upload Logic
         if (dto.File != null && dto.File.Length > 0)
         {
-            // SOLID/DRY: Extend type detection logic here
+            // 1. Determine File Type
             string contentType = dto.File.ContentType.ToLower();
-            string fileType = "file";
+            string fileType = "file"; // Default to generic file (pdf, doc, etc)
 
             if (contentType.StartsWith("image"))
                 fileType = "image";
-            else if (contentType.StartsWith("audio")) // <--- ADD THIS CHECK
+            else if (contentType.StartsWith("audio"))
                 fileType = "audio";
+            else if (contentType.StartsWith("video"))
+                fileType = "video";
 
-            // Reuse existing storage service (DRY)
-            string fileUrl = await _fileStorageService.UploadFileAsync(dto.File.OpenReadStream(), dto.File.FileName, dto.File.ContentType);
+            // 2. Upload to Cloudinary
+            // We pass the whole 'IFormFile' so the service can handle streams and headers
+            string fileUrl = await _fileStorageService.SaveFileAsync(dto.File);
 
+            // 3. Set Message Properties
             message.AttachmentUrl = fileUrl;
-            message.AttachmentType = fileType; // Now saves "audio"
+            message.AttachmentType = fileType;
             message.OriginalFileName = dto.File.FileName;
         }
 
@@ -93,9 +100,12 @@ public class ChatService : IChatService
             SenderName = sender?.UserName,
             ReceiverId = dto.ReceiverId,
             MessageContent = savedMessage.MessageContent,
-            AttachmentUrl = savedMessage.AttachmentUrl,      // Map new props
-            AttachmentType = savedMessage.AttachmentType,    // Map new props
-            OriginalFileName = savedMessage.OriginalFileName,// Map new props
+
+            // Map new props so the UI updates immediately via SignalR
+            AttachmentUrl = savedMessage.AttachmentUrl,
+            AttachmentType = savedMessage.AttachmentType,
+            OriginalFileName = savedMessage.OriginalFileName,
+
             SentAt = savedMessage.SentAt,
             IsRead = false,
             IsSentByCurrentUser = true
@@ -115,11 +125,14 @@ public class ChatService : IChatService
             MessageContent = m.MessageContent,
             SentAt = m.SentAt,
             IsRead = m.IsRead,
-            IsSentByCurrentUser = m.SenderId == currentUserId
+            IsSentByCurrentUser = m.SenderId == currentUserId,
+
+            // ✅ ADDED: Map Attachment details for pagination/scrolling
+            AttachmentUrl = m.AttachmentUrl,
+            AttachmentType = m.AttachmentType,
+            OriginalFileName = m.OriginalFileName
         }).ToList();
     }
-
-    // ... inside ChatService class ...
 
     public async Task<MessageDto> EditMessageAsync(Guid currentUserId, int messageId, string newContent)
     {
@@ -128,16 +141,14 @@ public class ChatService : IChatService
         if (message == null)
             throw new Exception("Message not found");
 
-        // Authorization Check: Only sender can edit
+        // Authorization Check
         if (message.SenderId != currentUserId)
             throw new UnauthorizedAccessException("You can only edit your own messages.");
 
         message.MessageContent = newContent;
-        // Optional: Add an 'IsEdited' flag or 'EditedAt' timestamp to your Domain entity if you want to show "(edited)" in UI
 
         await _messageRepository.UpdateMessageAsync(message);
 
-        // Return DTO to update UI
         return new MessageDto
         {
             Id = message.Id,
@@ -147,7 +158,12 @@ public class ChatService : IChatService
             MessageContent = message.MessageContent,
             SentAt = message.SentAt,
             IsRead = message.IsRead,
-            IsSentByCurrentUser = true
+            IsSentByCurrentUser = true,
+
+            // ADDED: Ensure attachments persist in UI after editing text
+            AttachmentUrl = message.AttachmentUrl,
+            AttachmentType = message.AttachmentType,
+            OriginalFileName = message.OriginalFileName
         };
     }
 
@@ -158,15 +174,18 @@ public class ChatService : IChatService
         if (message == null)
             throw new Exception("Message not found");
 
-        // Authorization Check
         if (message.SenderId != currentUserId)
             throw new UnauthorizedAccessException("You can only delete your own messages.");
 
-        var receiverId = message.ReceiverId; // Capture this before deleting
+        var receiverId = message.ReceiverId;
+
+        // Optional: If you want to delete the file from Cloudinary 
+        // if(!string.IsNullOrEmpty(message.AttachmentUrl)) 
+        //      await _fileStorageService.DeleteFileAsync(message.AttachmentUrl);
 
         await _messageRepository.DeleteMessageAsync(message);
 
-        return receiverId; // Return receiver ID so SignalR can notify them
+        return receiverId;
     }
 
     public async Task MarkMessagesAsReadAsync(Guid senderId, Guid receiverId)

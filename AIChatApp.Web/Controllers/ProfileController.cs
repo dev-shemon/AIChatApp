@@ -188,18 +188,14 @@ public class ProfileController : Controller
     [HttpGet]
     public async Task<IActionResult> ChangeProfilePicture()
     {
-        // 1. Get current user ID
         Guid userId = GetCurrentUserId();
-
-        // 2. Fetch the user from database
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null) return NotFound();
 
-        // 3. Create the DTO and populate with current picture URL
         var model = new UpdateProfilePictureDto
         {
             UserId = userId,
-            CurrentProfilePictureUrl = user.ProfileImageUrl // ✅ Pass the current picture URL
+            CurrentProfilePictureUrl = user.ProfileImageUrl
         };
 
         return View(model);
@@ -209,10 +205,8 @@ public class ProfileController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ChangeProfilePicture(UpdateProfilePictureDto model)
     {
-        // 1. Validate DTO
         if (!ModelState.IsValid)
         {
-            // Reload current picture URL on validation error
             var user = await _userRepository.GetByIdAsync(model.UserId);
             if (user != null)
             {
@@ -221,64 +215,49 @@ public class ProfileController : Controller
             return View(model);
         }
 
-        // 2. Get User
         var userToUpdate = await _userRepository.GetByIdAsync(GetCurrentUserId());
         if (userToUpdate == null || userToUpdate.Id != model.UserId)
         {
             return NotFound();
         }
 
-        // 3. Handle File Upload
         try
         {
-            // Store the old image URL before deleting
             string? oldImageUrl = userToUpdate.ProfileImageUrl;
 
-            // For file uploads, use a unique name based on user ID
-            string fileExtension = Path.GetExtension(model.ProfileImageFile.FileName);
-            string fileName = $"{model.UserId}{fileExtension}";
-
-            // Upload the new file and get the new URL
-            using (var stream = model.ProfileImageFile.OpenReadStream())
+            // ✅ FIXED: Using SaveFileAsync(IFormFile) directly
+            // No need to manually open stream or set filenames, Cloudinary handles it.
+            if (model.ProfileImageFile != null)
             {
-                var newImageUrl = await _fileStorageService.UploadFileAsync(
-                    stream,
-                    fileName,
-                    model.ProfileImageFile.ContentType);
+                var newImageUrl = await _fileStorageService.SaveFileAsync(model.ProfileImageFile);
 
-                // 4. Update User Entity with new image URL
                 userToUpdate.ProfileImageUrl = newImageUrl;
-            }
 
-            // 5. Save Changes to Database FIRST (before deleting old image)
-            await _userRepository.UpdateAsync(userToUpdate);
-            await _userRepository.SaveChangesAsync();
+                // Save Changes
+                await _userRepository.UpdateAsync(userToUpdate);
+                await _userRepository.SaveChangesAsync();
 
-            // 6. DELETE THE OLD IMAGE from storage (after DB update succeeds)
-            // Only delete if an old image existed and it's different from the new one
-            if (!string.IsNullOrEmpty(oldImageUrl) && oldImageUrl != userToUpdate.ProfileImageUrl)
-            {
-                try
+                // Delete old image if it exists and is different
+                if (!string.IsNullOrEmpty(oldImageUrl) && oldImageUrl != newImageUrl)
                 {
-                    await _fileStorageService.DeleteFileAsync(oldImageUrl);
+                    try
+                    {
+                        await _fileStorageService.DeleteFileAsync(oldImageUrl);
+                    }
+                    catch (Exception deleteEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error deleting old image: {deleteEx.Message}");
+                    }
                 }
-                catch (Exception deleteEx)
-                {
-                    // Log the error but don't fail the operation
-                    // The new image is already saved, so we can continue
-                    System.Diagnostics.Debug.WriteLine($"Error deleting old image: {deleteEx.Message}");
-                }
-            }
 
-            TempData["SuccessMessage"] = "Profile picture successfully updated!";
+                TempData["SuccessMessage"] = "Profile picture successfully updated!";
+            }
             return RedirectToAction("ProfileDetails");
         }
         catch (Exception ex)
         {
-            // Log the exception
             ModelState.AddModelError(string.Empty, $"An error occurred during file upload: {ex.Message}");
 
-            // Reload current picture URL on error
             var user = await _userRepository.GetByIdAsync(model.UserId);
             if (user != null)
             {

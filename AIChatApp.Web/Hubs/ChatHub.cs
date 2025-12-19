@@ -18,6 +18,36 @@ public class ChatHub : Hub
         _logger = logger;
     }
 
+    // Add inside AIChatApp.Web.Hubs.ChatHub
+
+    // 1. Initiate Call: Passes the WebRTC Offer to the specific user
+    public async Task CallUser(string receiverId, string offerData)
+    {
+        // Check if user is referencing themselves
+        var senderId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (senderId == receiverId) return;
+
+        await Clients.User(receiverId).SendAsync("IncomingCall", senderId, offerData);
+    }
+
+    // 2. Answer Call: Passes the WebRTC Answer back to the caller
+    public async Task AnswerCall(string callerId, string answerData)
+    {
+        await Clients.User(callerId).SendAsync("CallAccepted", answerData);
+    }
+
+    // 3. ICE Candidate: Helps devices find a network path to each other
+    public async Task SendIceCandidate(string receiverId, string candidateData)
+    {
+        await Clients.User(receiverId).SendAsync("ReceiveIceCandidate", candidateData);
+    }
+
+    // 4. Hang Up: Notifies the other party to stop the stream
+    public async Task HangUp(string receiverId)
+    {
+        await Clients.User(receiverId).SendAsync("CallEnded");
+    }
+
     public async Task SendMessage(string receiverId, string message)
     {
         try

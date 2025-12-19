@@ -6,11 +6,12 @@ using AIChatApp.Infrastructure.Data;
 using AIChatApp.Infrastructure.Email;
 using AIChatApp.Infrastructure.Repositories;
 using AIChatApp.Infrastructure.Utilities;
-using AIChatApp.Web.Hubs; // ADD THIS - for ChatHub
+using AIChatApp.Web.Hubs; 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Reflection.PortableExecutable;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +27,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordHasher, CustomPasswordHasher>();
-builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<IFileStorageService, CloudinaryStorageService>();
 builder.Services.AddScoped<IUserListService, UserListService>();
 
 // NEW: Add Chat Services
@@ -115,3 +116,10 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+
+//Prefetching + Local Caching -> for make navigation faster
+//SQL Server Full-Text Search (FTS) -> for searching messages
+//Keyset Pagination(Cursor Based) -> for loading chat history
+//Redis Caching -> for frequently accessed data
+//Vector Search Integration -> for semantic search in messages
