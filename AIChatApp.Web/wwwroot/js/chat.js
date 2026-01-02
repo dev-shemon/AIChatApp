@@ -42,6 +42,88 @@
     let recordingInterval = null;
     let currentAudioBlob = null; // Stores the final recorded file
 
+    // --- LINKIFY HELPERS (FIXED) ---
+    const URL_REGEX = /(?:https?:\/\/|www\.)[^\s<]+/gi;
+    const TRAILING_PUNCT = /[)\].,!?;:]+$/;
+
+    function escapeAttr(value) {
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    function buildHref(url) {
+        if (!url) return "";
+        const u = url.trim();
+
+        // Already absolute
+        if (/^https?:\/\//i.test(u)) return u;
+
+        // "www.example.com" -> make absolute
+        if (/^www\./i.test(u)) return "https://" + u;
+
+        // Fallback (shouldn't happen with your regex)
+        return u;
+    }
+
+    // Returns SAFE HTML with <a> tags for URLs (no styling changes)
+    function linkifyHtml(text) {
+        if (!text) return "";
+
+        let result = "";
+        let lastIndex = 0;
+
+        text.replace(URL_REGEX, (match, offset) => {
+            // Text before URL (escaped)
+            result += escapeHtml(text.slice(lastIndex, offset));
+
+            // Strip trailing punctuation from URL but keep it after the link
+            let urlText = match;
+            let trailing = "";
+            const punct = urlText.match(TRAILING_PUNCT);
+            if (punct) {
+                trailing = punct[0];
+                urlText = urlText.slice(0, -trailing.length);
+            }
+
+            const href = buildHref(urlText);
+
+            // IMPORTANT: don't let URL() base-join relative values.
+            // Only treat it as a URL if it's absolute.
+            let finalHref = href;
+            if (/^https?:\/\//i.test(href)) {
+                finalHref = href; // already correct, no parsing needed
+            } else if (/^www\./i.test(href)) {
+                finalHref = "https://" + href;
+            }
+
+            result += `<a href="${escapeAttr(finalHref)}" target="_blank" rel="noopener noreferrer">${escapeHtml(urlText)}</a>`;
+            result += escapeHtml(trailing);
+
+            lastIndex = offset + match.length;
+            return match;
+        });
+
+        // Remaining text
+        result += escapeHtml(text.slice(lastIndex));
+        return result;
+    }
+
+
+    function linkifyExistingMessagesOnLoad() {
+        if (!config.elements.messagesContainer) return;
+        // Only touch message paragraphs inside the chat container
+        config.elements.messagesContainer.querySelectorAll("p").forEach(p => {
+            if (p.dataset && p.dataset.linkified === "1") return;
+            const raw = p.textContent || "";
+            p.innerHTML = linkifyHtml(raw);
+            if (p.dataset) p.dataset.linkified = "1";
+        });
+    }
+
     // --- INITIALIZATION ---
 
     // Auto-resize textarea
@@ -53,6 +135,9 @@
 
     // Scroll to bottom on load
     scrollToBottom(true);
+
+    // ✅ Make server-rendered links clickable on page load
+    linkifyExistingMessagesOnLoad();
 
     // Initialize SignalR
     async function initializeConnection() {
@@ -213,7 +298,6 @@
         config.elements.messageInput.focus();
     }
 
-
     // --- SEND MESSAGE LOGIC (HTTP POST) ---
 
     config.elements.sendButton.addEventListener("click", sendMessage);
@@ -331,8 +415,9 @@
         connection.on("MessageEdited", (messageId, newContent) => {
             const el = document.querySelector(`[data-message-id='${messageId}']`);
             if (el) {
-                const textEl = el.querySelector(".message-text");
-                if (textEl) textEl.textContent = newContent;
+                // Try both class names for compatibility
+                const textEl = el.querySelector(".message-text-content") || el.querySelector(".message-text");
+                if (textEl) textEl.innerHTML = linkifyHtml(newContent);
             }
         });
 
@@ -385,13 +470,22 @@
 
         // Edit
         const editBtn = e.target.closest('.edit-message-btn');
+
         if (editBtn) {
+            e.preventDefault();
             const container = editBtn.closest('.group');
             const id = editBtn.getAttribute('data-message-id');
-            // Check if it's a temp ID
-            if (id.startsWith('temp-')) return;
 
-            editBtn.closest('.message-actions').classList.add('hidden');
+            // SAFETY CHECK: Ensure ID exists and isn't a string 'null'
+            if (!id || id === "null" || id.toString().startsWith('temp-')) {
+                console.warn("Message ID not ready for editing.");
+                return;
+            }
+
+            // Hide the menu
+            const menu = editBtn.closest('.message-actions');
+            if (menu) menu.classList.add('hidden');
+
             startInlineEdit(container, id);
             return;
         }
@@ -422,29 +516,30 @@
     });
 
     // --- INLINE EDITING ---
-
     function startInlineEdit(container, messageId) {
         if (container.classList.contains('message-editing')) return;
 
-        const textEl = container.querySelector('.message-text');
-        if (!textEl) return; // Can't edit if only attachment
+        // Try both class names - message-text-content for server-rendered, message-text for dynamically added
+        const textEl = container.querySelector('.message-text-content') || container.querySelector('.message-text');
+        if (!textEl) return;
 
-        const currentText = textEl.textContent;
+        const currentText = textEl.textContent.trim();
         const bubble = textEl.parentElement;
 
         container.classList.add('message-editing');
         textEl.style.display = 'none';
 
+        // Tailwind-styled textarea - match indigo color scheme
         const textarea = document.createElement('textarea');
-        textarea.className = 'w-full rounded bg-blue-800 text-white placeholder-blue-300 border-none px-2 py-1 text-sm resize-none focus:ring-2 focus:ring-white/50';
+        textarea.className = 'w-full rounded-lg bg-indigo-500 text-white border-none p-2 text-[14px] focus:ring-1 focus:ring-white/30 resize-none';
         textarea.value = currentText;
         textarea.rows = 2;
 
         const btnRow = document.createElement('div');
         btnRow.className = 'flex justify-end gap-2 mt-2';
         btnRow.innerHTML = `
-            <button class="cancel-edit text-xs text-blue-200 hover:text-white font-medium">Cancel</button>
-            <button class="save-edit px-3 py-1 bg-white text-blue-700 text-xs font-bold rounded hover:bg-gray-100">Save</button>
+            <button class="cancel-edit text-xs text-indigo-100 hover:underline">Cancel</button>
+            <button class="save-edit px-2 py-1 bg-white text-indigo-600 text-xs font-bold rounded shadow-sm">Save</button>
         `;
 
         bubble.appendChild(textarea);
@@ -458,21 +553,22 @@
             container.classList.remove('message-editing');
         };
 
-        btnRow.querySelector('.cancel-edit').addEventListener('click', cancel);
-        btnRow.querySelector('.save-edit').addEventListener('click', async () => {
+        btnRow.querySelector('.cancel-edit').onclick = cancel;
+        btnRow.querySelector('.save-edit').onclick = async () => {
             const newText = textarea.value.trim();
             if (newText && newText !== currentText) {
                 try {
                     await connection.invoke("EditMessage", parseInt(messageId), newText);
-                    textEl.textContent = newText;
+                    textEl.innerHTML = linkifyHtml(newText);
                     cancel();
                 } catch (err) {
-                    alert("Failed to edit message");
+                    console.error("SignalR Error:", err);
+                    alert("Failed to save. Try again.");
                 }
             } else {
                 cancel();
             }
-        });
+        };
     }
 
     // --- HELPER FUNCTIONS ---
@@ -505,75 +601,109 @@
     // UPDATED: Now supports files/images/AUDIO
     function appendMessage(text, isSent, timestamp, messageId, isRead, isTemp, fileObj = null, attachmentUrl = null, attachmentType = null, originalFileName = null) {
         const div = document.createElement("div");
-        div.className = `flex ${isSent ? "justify-end" : "justify-start"} animate-fadeIn mb-4`;
+        div.className = `flex ${isSent ? "justify-end" : "justify-start"} animate-fadeIn`;
         if (messageId) div.setAttribute("data-message-id", messageId);
         if (isTemp) div.setAttribute("data-client-temp", "true");
 
-        const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const time = new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
 
-        // Generate Attachment HTML
+        // Generate Attachment HTML (matching Index.cshtml structure)
         let attachmentHtml = "";
 
-        // Case A: Optimistic Local File/Blob
         if (fileObj) {
             const url = URL.createObjectURL(fileObj);
             const type = fileObj.type;
             const name = fileObj.name || "Voice Message";
 
             if (type.startsWith('image/')) {
-                attachmentHtml = generateImageHtml(url, isSent);
-            } else if (type.startsWith('audio/') || type === 'video/webm') { // Some browsers record audio as video/webm
-                attachmentHtml = generateAudioHtml(url, isSent);
+                attachmentHtml = `<div class="mb-3 rounded-lg overflow-hidden border border-white/20">
+                    <a href="${url}" target="_blank">
+                        <img src="${url}" alt="Image" class="max-w-full max-h-[350px] object-cover hover:scale-105 transition-transform duration-500" />
+                    </a>
+                </div>`;
+            } else if (type.startsWith('audio/') || type === 'video/webm') {
+                attachmentHtml = `<div class="mb-3 rounded-lg overflow-hidden border border-white/20">
+                    <div class="p-3 bg-white/10 backdrop-blur-sm">
+                        <audio controls class="w-full h-8 brightness-90 filter">
+                            <source src="${url}" type="audio/webm">
+                        </audio>
+                    </div>
+                </div>`;
             } else {
-                attachmentHtml = generateFileHtml(url, name, isSent);
+                attachmentHtml = `<div class="mb-3 rounded-lg overflow-hidden border border-white/20">
+                    <a href="${url}" target="_blank" class="flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 transition-colors">
+                        <div class="bg-white p-2 rounded-lg text-indigo-600 shadow-sm">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <span class="text-xs font-semibold truncate max-w-[150px]">${name}</span>
+                    </a>
+                </div>`;
             }
         }
-        // Case B: Server URL
         else if (attachmentUrl) {
             if (attachmentType === 'image') {
-                attachmentHtml = generateImageHtml(attachmentUrl, isSent);
+                attachmentHtml = `<div class="mb-3 rounded-lg overflow-hidden border border-white/20">
+                    <a href="${attachmentUrl}" target="_blank">
+                        <img src="${attachmentUrl}" alt="Image" class="max-w-full max-h-[350px] object-cover hover:scale-105 transition-transform duration-500" />
+                    </a>
+                </div>`;
             } else if (attachmentType === 'audio') {
-                attachmentHtml = generateAudioHtml(attachmentUrl, isSent);
+                attachmentHtml = `<div class="mb-3 rounded-lg overflow-hidden border border-white/20">
+                    <div class="p-3 bg-white/10 backdrop-blur-sm">
+                        <audio controls class="w-full h-8 brightness-90 filter">
+                            <source src="${attachmentUrl}" type="audio/webm">
+                        </audio>
+                    </div>
+                </div>`;
             } else {
-                attachmentHtml = generateFileHtml(attachmentUrl, originalFileName || "File", isSent);
+                attachmentHtml = `<div class="mb-3 rounded-lg overflow-hidden border border-white/20">
+                    <a href="${attachmentUrl}" target="_blank" class="flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 transition-colors">
+                        <div class="bg-white p-2 rounded-lg text-indigo-600 shadow-sm">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <span class="text-xs font-semibold truncate max-w-[150px]">${originalFileName || "File"}</span>
+                    </a>
+                </div>`;
             }
         }
 
-        // Generate Text HTML
-        const textHtml = text ? `<p class="text-sm leading-relaxed break-words message-text ${isSent ? 'text-white' : 'text-gray-800'}">${escapeHtml(text)}</p>` : '';
+        // Generate Text HTML - Keep EXACT classes, only change content to linkified HTML
+        const textHtml = text ? `<p class="text-[14px] leading-relaxed font-medium message-text-content">${linkifyHtml(text)}</p>` : '';
 
-        // Generate Full Bubble
+        // Generate Full Bubble - Match Index.cshtml structure exactly
         if (isSent) {
             div.innerHTML = `
-                <div class="max-w-[70%] group relative">
-                    <div class="bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-md">
+                <div class="max-w-[75%] group relative">
+                    <div class="bg-indigo-600 text-white rounded-[20px] rounded-tr-[4px] px-4 py-3 shadow-lg shadow-indigo-200/50 hover:shadow-indigo-300/60 transition-all duration-300">
                         ${attachmentHtml}
                         ${textHtml}
                     </div>
                     
-                    <button type="button" class="message-options-btn absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white text-gray-600 flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10" data-message-id="${messageId}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v.01M12 12v.01M12 18v.01" /></svg>
+                    <button type="button" class="message-options-btn absolute -left-10 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-all text-gray-400" data-message-id="${messageId}">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" /></svg>
                     </button>
                     
-                    <div class="message-actions hidden absolute top-full right-0 mt-1 w-32 bg-white rounded-lg shadow-xl border border-gray-100 z-20 overflow-hidden">
-                         ${!attachmentUrl && !fileObj ? `<button class="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm text-gray-700 edit-message-btn" data-message-id="${messageId}">Edit</button>` : ''}
-                        <button class="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm text-red-600 delete-message-btn" data-message-id="${messageId}">Delete</button>
+                    <div class="message-actions hidden absolute top-0 right-full mr-2 w-32 bg-white rounded-xl shadow-xl border border-gray-100 z-50 py-1">
+                        ${!attachmentUrl && !fileObj ? `<button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-medium edit-message-btn" data-message-id="${messageId}">Edit</button>` : ''}
+                        <button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-50 text-[13px] font-medium text-red-500 delete-message-btn" data-message-id="${messageId}">Delete</button>
                     </div>
-
-                    <div class="flex items-center justify-end gap-1.5 mt-1 px-2">
-                        <span class="text-xs text-gray-500">${time}</span>
-                        <span class="message-status">${getStatusIconHtml(isRead ? 'seen' : 'sent')}</span>
+    
+                    <div class="flex items-center justify-end gap-2 mt-1.5 pr-1">
+                        <span class="text-[10px] font-bold text-gray-400">${time}</span>
+                        <span class="message-status" data-status="${isRead ? 'seen' : 'sent'}">
+                            ${getStatusIconHtml(isRead ? 'seen' : 'sent')}
+                        </span>
                     </div>
                 </div>`;
         } else {
             div.innerHTML = `
-                <div class="max-w-[70%]">
-                    <div class="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm">
+                <div class="max-w-[75%] group">
+                    <div class="bg-white border border-gray-100 rounded-[20px] rounded-tl-[4px] px-4 py-3 shadow-sm hover:shadow-md transition-all duration-300">
                         ${attachmentHtml}
-                        ${textHtml}
+                        ${textHtml ? `<p class="text-[14px] text-gray-700 leading-relaxed font-medium">${linkifyHtml(text)}</p>` : ''}
                     </div>
-                    <div class="flex items-center gap-1.5 mt-1 px-2">
-                        <span class="text-xs text-gray-500">${time}</span>
+                    <div class="flex items-center gap-2 mt-1.5 pl-1">
+                        <span class="text-[10px] font-bold text-gray-400">${time}</span>
                     </div>
                 </div>`;
         }
@@ -659,14 +789,3 @@
     // Start
     initializeConnection();
 })();
-connection.on("ReceiveMessage", function (message) {
-    // 1. If the sender's ID is NOT the current active chat window:
-    if (activeChatUserId !== message.senderId) {
-        // 2. Find the user in the sidebar and add the blue dot class
-        let userElement = document.querySelector(`[data-user-id="${message.senderId}"]`);
-        if (userElement) {
-            // Move user to the "Unread" section container via DOM manipulation
-            // and show the dot
-        }
-    }
-});

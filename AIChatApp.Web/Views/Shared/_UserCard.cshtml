@@ -1,64 +1,78 @@
 ﻿@model AIChatApp.Domain.DTOs.UserListDto
 
 @{
-    // Generate avatar URL using first letters of the name
+    // Generate avatar initials
     string initials = "";
     if (!string.IsNullOrEmpty(Model.FullName))
     {
         var nameParts = Model.FullName.Trim().Split(' ');
         if (nameParts.Length >= 2)
         {
-            // Two initials: First letter of first name + First letter of last name
             initials = $"{nameParts[0][0]}{nameParts[nameParts.Length - 1][0]}".ToUpper();
         }
         else if (nameParts.Length == 1)
         {
-            // One initial: First letter of the name
             initials = nameParts[0][0].ToString().ToUpper();
         }
     }
 
-    // Generate avatar using UI Avatars API or use uploaded picture
-    string avatarUrl = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(initials)}&background=random&color=fff&size=56&bold=true&font-size=0.33";
+    // High-end UI Avatars configuration
+    string avatarUrl = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(initials)}&background=6366F1&color=fff&size=128&bold=true&font-size=0.35";
     string profileImageSource = !string.IsNullOrEmpty(Model.ProfileImageUrl) ? Model.ProfileImageUrl : avatarUrl;
+
+    // Logic for "New" badge
+    bool isNewMember = Model.CreatedAt > DateTime.Now.AddDays(-7);
 }
 
-<!-- Card Container -->
-<div class="group relative flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:border-gray-300 hover:shadow-sm transition-all duration-200 ease-in-out cursor-default">
+<div class="relative flex items-center justify-between p-5 bg-white border border-slate-100 rounded-[2rem] shadow-sm transition-all duration-300">
 
-    <!-- Left Side: Avatar & Info -->
-    <div class="flex items-center gap-4">
-
-        <!-- Avatar with Active Indicator -->
+    <div class="flex items-center gap-5 relative z-10">
+        <!-- Avatar Section -->
         <div class="relative flex-shrink-0">
             <img src="@profileImageSource"
                  alt="@Model.FullName"
-                 class="h-14 w-14 rounded-full object-cover bg-gray-50 border border-gray-200"
+                 class="h-14 w-14 rounded-[1.2rem] object-cover bg-slate-50 border border-slate-100 relative z-10"
                  onerror="this.onerror=null;this.src='@avatarUrl';" />
-
         </div>
 
-        <!-- Text Info -->
+        <!-- User Information -->
         <div class="flex flex-col">
-            <h4 class="text-base font-bold text-gray-900 leading-tight group-hover:text-black transition-colors">
-                @Model.FullName
-            </h4>
-            <span class="text-sm text-gray-500 font-medium">@@@Model.UserName</span>
-            <span class="text-xs text-gray-400 mt-0.5">Joined @Model.CreatedAt.ToString("MMM yyyy")</span>
+            <div class="flex items-center gap-2 mb-0.5">
+                <h4 class="text-sm font-black text-slate-900 leading-tight tracking-tight">
+                    @Model.FullName
+                </h4>
+                @if (isNewMember)
+                {
+                    <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase tracking-widest rounded-md border border-indigo-100">
+                        New
+                    </span>
+                }
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <span class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                    @@@Model.UserName
+                </span>
+
+                <!-- New Feature: Status & Meta Bar (No Hover Needed) -->
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1.5">
+                        <span class="h-1 w-1 rounded-full bg-slate-200"></span>
+                        <span class="text-[10px] text-slate-400 font-medium">Joined @Model.CreatedAt.ToString("MMM yyyy")</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Right Side: Action Button -->
-    <!-- This icon fades in when you hover over the card -->
-    <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+    <!-- Persistent Action Button -->
+    <div class="relative z-10">
         <a asp-controller="Chat"
            asp-action="Index"
            asp-route-userId="@Model.Id"
-           class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-black text-white hover:bg-gray-800 transition-colors shadow-sm"
-           title="Send Message">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
+           class="flex items-center justify-center h-12 px-5 gap-2 rounded-2xl bg-slate-50 text-indigo-600 border border-slate-100 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 hover:shadow-lg hover:shadow-indigo-100 transition-all duration-300 group/btn">
+            <span class="text-[10px] font-black uppercase tracking-widest">Message</span>
+            <i class="fa-solid fa-paper-plane text-[10px] opacity-70 group-hover/btn:translate-x-0.5 transition-transform"></i>
         </a>
     </div>
 </div>

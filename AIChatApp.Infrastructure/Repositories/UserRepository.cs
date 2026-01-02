@@ -93,7 +93,7 @@ public class UserRepository : IUserRepository
 
         // SQL Server LIKE is case-insensitive by default, but explicit case-insensitive comparison is safer
         return await _context.Users
-            .Where(u => u.Id != excludedUserId && 
+            .Where(u => u.Id != excludedUserId &&
                        (EF.Functions.Like(u.FullName, $"%{normalizedQuery}%", "\\") ||
                         EF.Functions.Like(u.UserName, $"%{normalizedQuery}%", "\\")))
             .AsNoTracking()

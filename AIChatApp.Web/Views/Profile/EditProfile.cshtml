@@ -3,77 +3,100 @@
 @{
     ViewData["Title"] = "Edit Profile";
 }
+
 @section HeadMeta {
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 }
 
-<div class="min-h-screen bg-white py-20 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-slate-50 py-20 px-4 sm:px-6 lg:px-8">
     <div class="max-w-2xl mx-auto">
 
         <!-- Header Section -->
-        <div class="mb-10 text-center">
-            <h1 class="text-3xl font-bold tracking-tight text-gray-900">Edit Profile</h1>
-            <p class="mt-2 text-sm text-gray-500">Update your personal information and public profile settings.</p>
+        <div class="mb-12 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-[1.5rem] shadow-xl shadow-slate-200/50 mb-6 border border-slate-100">
+                <i class="fa-solid fa-user-pen text-indigo-600 text-xl"></i>
+            </div>
+            <h1 class="text-3xl font-black tracking-tight text-slate-900">Personal Identity</h1>
+            <p class="mt-3 text-sm text-slate-500 font-medium">Keep your account details up to date for better AI personalization.</p>
         </div>
 
         <!-- Form Section -->
-        <form asp-controller="Profile" asp-action="EditProfile" method="post" class="space-y-8">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="UserId" />
+        <div class="bg-white rounded-[2.5rem] p-8 md:p-12 border border-slate-100 shadow-2xl shadow-slate-200/40">
+            <form asp-controller="Profile" asp-action="EditProfile" method="post" class="space-y-8">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="UserId" />
 
-            <div asp-validation-summary="ModelOnly" class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 border border-red-100" role="alert"></div>
+                <div asp-validation-summary="ModelOnly" class="p-4 rounded-2xl bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100 mb-8 text-center" role="alert"></div>
 
-            <div class="space-y-6">
+                <div class="space-y-6">
 
-                <!-- Read-only Email -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <div class="relative">
-                        <input type="text" asp-for="CurrentEmail" readonly
-                               class="block w-full rounded-md border-gray-200 bg-gray-50 text-gray-500 shadow-sm focus:border-gray-200 focus:ring-0 sm:text-sm px-4 py-3 cursor-not-allowed" />
-                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
+                    <!-- Read-only Email -->
+                    <div>
+                        <label class="block text-xs font-black text-slate-900 uppercase tracking-[0.2em] mb-3 ml-1">Email Address</label>
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-envelope text-sm"></i>
+                            </div>
+                            <input type="text" asp-for="CurrentEmail" readonly
+                                   class="block w-full pl-11 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm text-slate-400 font-bold cursor-not-allowed italic" />
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                                <i class="fa-solid fa-lock text-slate-300 text-xs"></i>
+                            </div>
                         </div>
+                        <p class="mt-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-1">
+                            <i class="fa-solid fa-circle-info mr-1 text-indigo-400"></i> Locked for security
+                        </p>
                     </div>
-                    <p class="mt-1 text-xs text-gray-400">Email addresses cannot be changed for security reasons.</p>
-                </div>
 
-                <!-- Full Name -->
-                <div>
-                    <label asp-for="FullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input asp-for="FullName" type="text"
-                           class="block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm px-4 py-3 bg-gray-50 focus:bg-white transition-colors placeholder-gray-400" />
-                    <span asp-validation-for="FullName" class="mt-1 text-xs text-red-500"></span>
-                </div>
-
-                <!-- Username -->
-                <div>
-                    <label asp-for="UserName" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                    <div class="flex rounded-md shadow-sm">
-                        <span class="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">@@</span>
-                        <input asp-for="UserName" type="text"
-                               class="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-gray-300 focus:border-black focus:ring-black sm:text-sm px-4 py-3 bg-gray-50 focus:bg-white transition-colors placeholder-gray-400" />
+                    <!-- Full Name -->
+                    <div>
+                        <label asp-for="FullName" class="block text-xs font-black text-slate-900 uppercase tracking-[0.2em] mb-3 ml-1">Full Name</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                                <i class="fa-solid fa-signature text-sm"></i>
+                            </div>
+                            <input asp-for="FullName" type="text"
+                                   class="block w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-bold text-slate-900 shadow-sm"
+                                   placeholder="Your display name" />
+                        </div>
+                        <span asp-validation-for="FullName" class="mt-2 block text-[11px] text-rose-500 font-bold ml-1"></span>
                     </div>
-                    <span asp-validation-for="UserName" class="mt-1 text-xs text-red-500"></span>
-                </div>
-            </div>
 
-            <!-- Actions -->
-            <div class="pt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t border-gray-100">
-                <a asp-controller="Profile" asp-action="ProfileDetails"
-                   class="inline-flex w-full sm:w-auto justify-center rounded-md border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all">
-                    Cancel
-                </a>
-                <button type="submit"
-                        class="inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all">
-                    Save Changes
-                </button>
-            </div>
-        </form>
+                    <!-- Username -->
+                    <div>
+                        <label asp-for="UserName" class="block text-xs font-black text-slate-900 uppercase tracking-[0.2em] mb-3 ml-1">Username</label>
+                        <div class="flex rounded-2xl shadow-sm bg-slate-50 border border-slate-100 overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 focus-within:bg-white transition-all">
+                            <span class="inline-flex items-center px-4 bg-slate-100 text-slate-500 font-black text-xs border-r border-slate-100">@@</span>
+                            <input asp-for="UserName" type="text"
+                                   class="block w-full min-w-0 flex-1 border-none bg-transparent py-4 px-4 text-sm text-slate-900 font-bold focus:ring-0 placeholder-slate-400"
+                                   placeholder="unique_handle" />
+                        </div>
+                        <span asp-validation-for="UserName" class="mt-2 block text-[11px] text-rose-500 font-bold ml-1"></span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="pt-8 flex flex-col-reverse sm:flex-row sm:justify-end gap-4 border-t border-slate-50">
+                    <a asp-controller="Profile" asp-action="ProfileDetails"
+                       class="inline-flex w-full sm:w-auto justify-center rounded-2xl border border-slate-200 bg-white px-8 py-4 text-[11px] font-black uppercase tracking-widest text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-all active:scale-[0.98]">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="inline-flex w-full sm:w-auto justify-center rounded-2xl border border-transparent bg-indigo-600 px-8 py-4 text-[11px] font-black uppercase tracking-widest text-white shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all active:scale-[0.98]">
+                        Save Identity
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Footnote -->
+        <div class="mt-10 text-center">
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
+                Your changes will be reflected across all AI services immediately.
+            </p>
+        </div>
     </div>
 </div>
 

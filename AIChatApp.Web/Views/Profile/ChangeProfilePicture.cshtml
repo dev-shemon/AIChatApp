@@ -5,82 +5,99 @@
 
     // Use the current profile picture if available, otherwise show a placeholder
     string imageSource = string.IsNullOrEmpty(Model.CurrentProfilePictureUrl)
-        ? "https://ui-avatars.com/api/?name=User&background=f3f4f6&color=6b7280&size=256"
+        ? $"https://ui-avatars.com/api/?name=User&background=6366f1&color=fff&size=256"
         : Model.CurrentProfilePictureUrl;
 }
 
-<div class="min-h-screen bg-white py-20 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-xl mx-auto">
-
-        <!-- Header -->
-        <div class="mb-10 text-center">
-            <h1 class="text-3xl font-bold tracking-tight text-gray-900">Update photo</h1>
-            <p class="mt-2 text-sm text-gray-500">Choose a high-quality image for your profile.</p>
+<div class="min-h-[80vh] flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8 bg-slate-50">
+    <div class="w-full max-w-md">
+        <!-- Header Section -->
+        <div class="text-center mb-10">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-[1.5rem] shadow-xl shadow-indigo-100 mb-6 transition-transform hover:scale-110 duration-500">
+                <i class="fa-solid fa-camera-retro text-white text-2xl"></i>
+            </div>
+            <h2 class="text-3xl font-black tracking-tight text-slate-900">Update Photo</h2>
+            <p class="mt-3 text-sm text-slate-500 font-medium">Choose a high-quality image for your digital identity.</p>
         </div>
 
-        <form asp-controller="Profile" asp-action="ChangeProfilePicture" method="post" enctype="multipart/form-data" class="space-y-8">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="UserId" />
-            <input type="hidden" asp-for="CurrentProfilePictureUrl" />
+        <!-- Form Card -->
+        <div class="bg-white rounded-[2.5rem] p-8 md:p-10 border border-slate-100 shadow-2xl shadow-slate-200/50">
+            <form asp-controller="Profile" asp-action="ChangeProfilePicture" method="post" enctype="multipart/form-data" class="space-y-8">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="UserId" />
+                <input type="hidden" asp-for="CurrentProfilePictureUrl" />
 
-            <!-- Error Summary -->
-            <div asp-validation-summary="ModelOnly" class="p-4 text-sm text-red-800 rounded-lg bg-red-50 border border-red-100" role="alert"></div>
+                <!-- Error Summary -->
+                <div asp-validation-summary="ModelOnly" class="p-4 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100 text-center"></div>
 
-            <!-- Image Preview & Selection Area -->
-            <div class="flex flex-col items-center space-y-6">
+                <!-- Avatar Preview Area -->
+                <div class="flex flex-col items-center">
+                    <div class="relative group cursor-pointer">
+                        <!-- Orbit Ring -->
+                        <div class="absolute -inset-2 rounded-full border-2 border-dashed border-indigo-200 group-hover:border-indigo-400 group-hover:rotate-45 transition-all duration-700"></div>
 
-                <!-- Preview Circle -->
-                <div class="relative group">
-                    <div class="h-40 w-40 rounded-full overflow-hidden border-2 border-gray-100 ring-2 ring-transparent group-hover:ring-gray-200 transition-all duration-300">
-                        <img id="imagePreview"
-                             src="@imageSource"
-                             alt="Profile Preview"
-                             class="h-full w-full object-cover bg-gray-50" />
+                        <!-- Image Container -->
+                        <div class="relative h-44 w-44 rounded-full p-1 bg-white shadow-lg border border-slate-100 overflow-hidden">
+                            <img id="imagePreview"
+                                 src="@imageSource"
+                                 alt="Profile Preview"
+                                 class="h-full w-full object-cover rounded-full bg-slate-50 transition-transform duration-500 group-hover:scale-110" />
+
+                            <!-- Overlay -->
+                            <div class="absolute inset-0 bg-indigo-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <i class="fa-solid fa-cloud-arrow-up text-white text-3xl animate-bounce"></i>
+                            </div>
+                        </div>
+
+                        <!-- Status Badge -->
+                        <div class="absolute bottom-2 right-2 h-10 w-10 bg-emerald-500 border-4 border-white rounded-full flex items-center justify-center shadow-lg">
+                            <i class="fa-solid fa-check text-white text-xs"></i>
+                        </div>
                     </div>
 
-                    <!-- Overlay Icon -->
-                    <div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                        <svg class="h-8 w-8 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
+                    <div class="mt-8 w-full text-center">
+                        <label for="file-upload" class="relative group inline-flex items-center px-8 py-3 bg-slate-900 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all cursor-pointer shadow-lg shadow-slate-200 hover:shadow-indigo-100">
+                            <i class="fa-solid fa-images mr-2"></i>
+                            <span>Browse Gallery</span>
+                            <input id="file-upload"
+                                   asp-for="ProfileImageFile"
+                                   type="file"
+                                   accept="image/jpeg,image/png,image/webp"
+                                   class="sr-only"
+                                   onchange="previewFile(event)" />
+                        </label>
+
+                        <div class="mt-4 flex flex-col gap-1">
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Supports JPG, PNG, WebP</p>
+                            <p class="text-[10px] text-indigo-500 font-black uppercase tracking-widest">Maximum File Size: 5MB</p>
+                        </div>
+
+                        <span asp-validation-for="ProfileImageFile" class="mt-3 block text-[11px] text-rose-500 font-black tracking-wide"></span>
                     </div>
                 </div>
 
-                <!-- Current Image Info -->
-                @if (!string.IsNullOrEmpty(Model.CurrentProfilePictureUrl))
-                {
-                    <p class="text-xs text-gray-500 text-center">Current profile picture is shown above.</p>
-                }
-
-                <!-- Custom File Input Button -->
-                <div class="w-full text-center">
-                    <label for="file-upload" class="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-black transition-all">
-                        <span>Select New Image</span>
-                        <input id="file-upload"
-                               asp-for="ProfileImageFile"
-                               type="file"
-                               accept="image/jpeg,image/png,image/webp"
-                               class="sr-only"
-                               onchange="previewFile(event)" />
-                    </label>
-                    <p class="mt-2 text-xs text-gray-500">JPG, PNG, or WebP. Max 5MB.</p>
-                    <span asp-validation-for="ProfileImageFile" class="mt-2 block text-sm text-red-500 font-medium"></span>
+                <!-- Actions -->
+                <div class="pt-6 border-t border-slate-50 flex flex-col sm:flex-row gap-3">
+                    <button type="submit"
+                            class="flex-[2] py-4 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                        <i class="fa-solid fa-floppy-disk mr-2"></i>
+                        Save Changes
+                    </button>
+                    <a asp-controller="Profile" asp-action="ProfileDetails"
+                       class="flex-1 py-4 bg-slate-50 text-slate-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-100 text-center transition-colors border border-slate-100">
+                        Cancel
+                    </a>
                 </div>
-            </div>
+            </form>
+        </div>
 
-            <!-- Actions -->
-            <div class="pt-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-                <a asp-controller="Profile" asp-action="ProfileDetails"
-                   class="inline-flex w-full sm:w-auto justify-center rounded-md border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all">
-                    Cancel
-                </a>
-                <button type="submit"
-                        class="inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all">
-                    Update Photo
-                </button>
-            </div>
-        </form>
+        <!-- Tip Footer -->
+        <div class="mt-8 text-center">
+            <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2">
+                <i class="fa-solid fa-circle-info text-indigo-400"></i>
+                Images are automatically optimized for performance
+            </p>
+        </div>
     </div>
 </div>
 

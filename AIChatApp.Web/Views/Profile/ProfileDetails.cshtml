@@ -4,116 +4,152 @@
     ViewData["Title"] = "Profile";
 
     // Image logic
-    string defaultImageUrl = "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(Model.FullName ?? "User") + "&background=random";
+    string defaultImageUrl = "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(Model.FullName ?? "User") + "&background=6366f1&color=fff";
     string finalImageSource = string.IsNullOrEmpty(Model.ProfileImageUrl) ? defaultImageUrl : Model.ProfileImageUrl;
 }
 
-<div class="min-h-screen bg-white pb-20">
-    <div class="pt-20 pb-8 text-center px-4">
-        <div class="relative inline-block">
-            <img src="@finalImageSource"
-                 alt="@Model.FullName"
-                 class="h-32 w-32 rounded-full object-cover border border-gray-200 shadow-sm mx-auto"
-                 onerror="this.onerror=null;this.src='@defaultImageUrl';" />
+<div class="min-h-screen bg-slate-50 pb-24">
+    <!-- Header/Hero Section -->
+    <div class="bg-white border-b border-slate-100 pt-24 pb-12">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="relative inline-block group">
+                <!-- Decorative Ring -->
+                <div class="absolute -inset-3 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 opacity-20 blur-sm group-hover:opacity-40 transition-opacity duration-500"></div>
 
-            @if (Model.IsVerified)
-            {
-                <div class="absolute bottom-1 right-1 bg-white rounded-full p-1 shadow-sm" title="Verified">
-                    <svg class="h-6 w-6 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                    </svg>
+                <div class="relative">
+                    <img src="@finalImageSource"
+                         alt="@Model.FullName"
+                         class="h-40 w-40 rounded-[3rem] object-cover ring-4 ring-white shadow-2xl mx-auto transition-transform duration-500 group-hover:scale-[1.02]"
+                         onerror="this.onerror=null;this.src='@defaultImageUrl';" />
+
+                    @if (Model.IsVerified)
+                    {
+                        <div class="absolute -bottom-2 -right-2 bg-indigo-600 rounded-2xl p-2.5 shadow-xl shadow-indigo-200 border-4 border-white" title="Verified Account">
+                            <i class="fa-solid fa-check-double text-white text-sm"></i>
+                        </div>
+                    }
                 </div>
-            }
-        </div>
+            </div>
 
-        <h1 class="mt-4 text-3xl font-bold text-gray-900">@Model.FullName</h1>
-        <p class="text-gray-500 mt-1">@@@Model.UserName</p>
+            <h1 class="mt-8 text-4xl font-black tracking-tight text-slate-900">@Model.FullName</h1>
+            <p class="text-indigo-600 font-black text-xs uppercase tracking-[0.3em] mt-2">@@@Model.UserName</p>
+        </div>
     </div>
 
-    <div class="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur z-10">
-        <div class="max-w-4xl mx-auto px-4">
-            <nav class="flex justify-center space-x-8 sm:space-x-12" aria-label="Profile actions">
-
+    <!-- Navigation Bar -->
+    <div class="sticky top-0 bg-white/80 backdrop-blur-md z-30 border-b border-slate-100 shadow-sm shadow-slate-200/50">
+        <div class="max-w-5xl mx-auto px-4">
+            <nav class="flex justify-center -mb-px space-x-4 sm:space-x-10" aria-label="Tabs">
                 <a asp-controller="Profile" asp-action="EditProfile"
-                   class="group inline-flex items-center border-b-2 border-transparent py-4 text-sm font-bold text-gray-500 hover:text-gray-900 hover:border-gray-900 transition-all duration-200">
-                    <svg class="mr-2 h-5 w-5 text-gray-400 group-hover:text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    <span>Edit Profile</span>
+                   class="group inline-flex items-center py-5 px-1 border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all duration-300">
+                    <i class="fa-solid fa-pen-to-square mr-2 text-sm opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                    Edit
                 </a>
 
                 <a asp-controller="Profile" asp-action="ChangeProfilePicture"
-                   class="group inline-flex items-center border-b-2 border-transparent py-4 text-sm font-bold text-gray-500 hover:text-gray-900 hover:border-gray-900 transition-all duration-200">
-                    <svg class="mr-2 h-5 w-5 text-gray-400 group-hover:text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span>Photo</span>
+                   class="group inline-flex items-center py-5 px-1 border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all duration-300">
+                    <i class="fa-solid fa-camera mr-2 text-sm opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                    Photo
                 </a>
 
                 <a asp-controller="Profile" asp-action="ChangePassword"
-                   class="group inline-flex items-center border-b-2 border-transparent py-4 text-sm font-bold text-gray-500 hover:text-gray-900 hover:border-gray-900 transition-all duration-200">
-                    <svg class="mr-2 h-5 w-5 text-gray-400 group-hover:text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    <span>Password</span>
+                   class="group inline-flex items-center py-5 px-1 border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all duration-300">
+                    <i class="fa-solid fa-key mr-2 text-sm opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                    Security
                 </a>
 
                 <a asp-controller="Profile" asp-action="ConfirmDelete"
-                   class="group inline-flex items-center border-b-2 border-transparent py-4 text-sm font-bold text-gray-500 hover:text-red-600 hover:border-red-600 transition-all duration-200">
-                    <svg class="mr-2 h-5 w-5 text-gray-400 group-hover:text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <span>Delete</span>
+                   class="group inline-flex items-center py-5 px-1 border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-600 hover:border-rose-600 transition-all duration-300">
+                    <i class="fa-solid fa-trash-can mr-2 text-sm opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                    Archive
                 </a>
-
             </nav>
         </div>
     </div>
 
-    <div class="max-w-4xl mx-auto px-4 mt-12">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+    <!-- Content Area -->
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+        <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+            <div class="p-8 md:p-12">
+                <h3 class="text-xs font-black text-slate-900 uppercase tracking-[0.2em] mb-10 pb-4 border-b border-slate-50">Account Information</h3>
 
-            <div class="border-b border-gray-100 pb-2">
-                <dt class="text-xs uppercase tracking-wider font-semibold text-gray-500">Full Name</dt>
-                <dd class="mt-1 text-lg font-medium text-gray-900">@Model.FullName</dd>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
+                    <!-- Data Point -->
+                    <div class="group">
+                        <dt class="text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 mb-2">Display Name</dt>
+                        <dd class="flex items-center text-slate-900 font-bold group-hover:translate-x-1 transition-transform">
+                            <i class="fa-solid fa-signature text-indigo-200 mr-3 text-lg"></i>
+                            @Model.FullName
+                        </dd>
+                    </div>
+
+                    <!-- Data Point -->
+                    <div class="group">
+                        <dt class="text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 mb-2">Email Address</dt>
+                        <dd class="flex items-center text-slate-900 font-bold group-hover:translate-x-1 transition-transform">
+                            <i class="fa-solid fa-envelope text-indigo-200 mr-3 text-lg"></i>
+                            @Model.Email
+                        </dd>
+                    </div>
+
+                    <!-- Data Point -->
+                    <div class="group">
+                        <dt class="text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 mb-2">Username</dt>
+                        <dd class="flex items-center text-slate-900 font-bold group-hover:translate-x-1 transition-transform">
+                            <i class="fa-solid fa-at text-indigo-200 mr-3 text-lg"></i>
+                            @Model.UserName
+                        </dd>
+                    </div>
+
+                    <!-- Data Point -->
+                    <div class="group">
+                        <dt class="text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 mb-2">Member Since</dt>
+                        <dd class="flex items-center text-slate-900 font-bold group-hover:translate-x-1 transition-transform">
+                            <i class="fa-solid fa-calendar-check text-indigo-200 mr-3 text-lg"></i>
+                            @Model.RegisteredDate.ToString("MMMM yyyy")
+                        </dd>
+                    </div>
+
+                    <!-- Data Point: Status -->
+                    <div class="md:col-span-2 p-6 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+                                @if (Model.IsVerified)
+                                {
+                                    <i class="fa-solid fa-certificate text-emerald-500 text-xl"></i>
+                                    
+                                }
+                                else
+                                {
+                                    <i class="fa-solid fa-shield-exclamation text-amber-500 text-xl"></i>
+                                }
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verification Status</p>
+                                <p class="text-sm font-black text-slate-900">
+                                    @(Model.IsVerified ? "Fully Verified Account" : "Pending Verification")
+                                </p>
+                            </div>
+                        </div>
+
+                        @if (!Model.IsVerified)
+                        {
+                            <button class="px-5 py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-colors">
+                                Resend Email
+                            </button>
+                        }
+                    </div>
+                </div>
             </div>
+        </div>
 
-            <div class="border-b border-gray-100 pb-2">
-                <dt class="text-xs uppercase tracking-wider font-semibold text-gray-500">Email Address</dt>
-                <dd class="mt-1 text-lg font-medium text-gray-900">@Model.Email</dd>
-            </div>
-
-            <div class="border-b border-gray-100 pb-2">
-                <dt class="text-xs uppercase tracking-wider font-semibold text-gray-500">Username</dt>
-                <dd class="mt-1 text-lg font-medium text-gray-900">@@@Model.UserName</dd>
-            </div>
-
-            <div class="border-b border-gray-100 pb-2">
-                <dt class="text-xs uppercase tracking-wider font-semibold text-gray-500">Joined</dt>
-                <dd class="mt-1 text-lg font-medium text-gray-900">@Model.RegisteredDate.ToString("MMMM yyyy")</dd>
-            </div>
-
-            <div class="border-b border-gray-100 pb-2">
-                <dt class="text-xs uppercase tracking-wider font-semibold text-gray-500">Status</dt>
-                <dd class="mt-1 flex items-center">
-                    @if (Model.IsVerified)
-                    {
-                        <span class="inline-flex items-center text-green-600 font-medium">
-                            <span class="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
-                            Verified Account
-                        </span>
-                    }
-                    else
-                    {
-                        <span class="inline-flex items-center text-yellow-600 font-medium">
-                            <span class="h-2 w-2 rounded-full bg-yellow-500 mr-2"></span>
-                            Pending Verification
-                        </span>
-                    }
-                </dd>
-            </div>
-
+        <!-- Footnote -->
+        <div class="mt-12 text-center">
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-3">
+                <span class="h-px w-8 bg-slate-200"></span>
+                Digital Identity ID: @Model.UserName.GetHashCode().ToString("X")
+                <span class="h-px w-8 bg-slate-200"></span>
+            </p>
         </div>
     </div>
 </div>

@@ -4,41 +4,63 @@
     ViewData["Title"] = "Delete Account";
 }
 
-<div class="flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8 bg-white min-h-[80vh]">
-    <div class="w-full max-w-md text-center space-y-8">
+<div class="min-h-[85vh] flex items-center justify-center py-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
+    <div class="w-full max-w-md">
 
-        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-50">
-            <svg class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+        <!-- Warning Header -->
+        <div class="text-center mb-10">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-rose-50 rounded-[2rem] shadow-xl shadow-rose-100 mb-6 border border-rose-100">
+                <i class="fa-solid fa-triangle-exclamation text-rose-600 text-3xl animate-pulse"></i>
+            </div>
+            <h2 class="text-3xl font-black tracking-tight text-slate-900">Account Termination</h2>
+            <div class="mt-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <p class="text-sm text-slate-500 font-medium leading-relaxed">
+                    This action is <span class="text-rose-600 font-bold uppercase tracking-wider">irreversible</span>. All chat history, AI training data, and profile settings will be wiped from our servers.
+                </p>
+            </div>
         </div>
 
-        <div>
-            <h2 class="text-3xl font-bold tracking-tight text-gray-900">Delete Account</h2>
-            <p class="mt-4 text-gray-600">
-                This action is <strong>permanent</strong> and cannot be undone. All your data will be wiped immediately.
-            </p>
+        <!-- Security Confirmation Form -->
+        <div class="bg-white rounded-[2.5rem] p-8 md:p-10 border border-slate-100 shadow-2xl shadow-slate-200/50">
+            <form asp-controller="Profile" asp-action="DeleteAccount" method="post" class="space-y-6">
+                @Html.AntiForgeryToken()
+
+                <div asp-validation-summary="ModelOnly" class="p-4 rounded-xl bg-rose-50 text-rose-600 text-[11px] font-black uppercase tracking-widest border border-rose-100 mb-6 text-center" role="alert"></div>
+
+                <div>
+                    <label asp-for="Password" class="block text-xs font-black text-slate-900 uppercase tracking-[0.2em] mb-3 ml-1">Confirm with Password</label>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-rose-600 transition-colors">
+                            <i class="fa-solid fa-key text-sm"></i>
+                        </div>
+                        <input asp-for="Password" type="password"
+                               class="block w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all font-bold text-slate-900"
+                               placeholder="••••••••">
+                    </div>
+                    <span asp-validation-for="Password" class="mt-2 block text-[11px] text-rose-500 font-bold ml-1"></span>
+                </div>
+
+                <div class="pt-4 space-y-3">
+                    <button type="submit"
+                            class="w-full flex justify-center py-4 px-4 bg-rose-600 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-all shadow-lg shadow-rose-100 hover:scale-[1.01] active:scale-[0.98]">
+                        Confirm Termination
+                    </button>
+
+                    <a asp-controller="Profile" asp-action="ProfileDetails"
+                       class="w-full flex justify-center py-4 px-4 bg-white text-slate-500 text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl border border-slate-100 hover:bg-slate-50 hover:text-slate-900 transition-all text-center">
+                        Nevermind, Go Back
+                    </a>
+                </div>
+            </form>
         </div>
 
-        <form asp-controller="Profile" asp-action="DeleteAccount" method="post" class="mt-8 text-left">
-            @Html.AntiForgeryToken()
-            <div asp-validation-summary="ModelOnly" class="text-red-600 text-sm font-medium mb-4 text-center"></div>
-
-            <div class="mb-6">
-                <label asp-for="Password" class="block text-sm font-medium text-gray-700 mb-2">Enter your password to confirm</label>
-                <input asp-for="Password" type="password" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm px-4 py-3 bg-gray-50 focus:bg-white transition-colors" placeholder="Current Password">
-                <span asp-validation-for="Password" class="mt-1 text-xs text-red-500"></span>
+        <!-- Security Badge -->
+        <div class="mt-10 flex flex-col items-center">
+            <div class="flex items-center gap-2 text-[10px] text-slate-400 font-black uppercase tracking-widest">
+                <i class="fa-solid fa-shield-check text-indigo-400"></i>
+                Secure Request Processing
             </div>
-
-            <div class="flex flex-col sm:flex-row gap-3">
-                <a asp-controller="Profile" asp-action="ProfileDetails" class="order-2 sm:order-1 flex-1 justify-center rounded-md border border-gray-300 bg-white py-3 px-4 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 text-center transition-all duration-200">
-                    Cancel
-                </a>
-                <button type="submit" class="order-1 sm:order-2 flex-1 justify-center rounded-md border border-transparent bg-red-600 py-3 px-4 text-sm font-semibold text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200">
-                    Yes, Delete My Account
-                </button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
